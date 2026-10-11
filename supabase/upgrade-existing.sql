@@ -18,8 +18,8 @@ begin
   if new.kind <> 'project' then return new; end if;
   select coalesce(jsonb_object_agg(key,value),'{}'::jsonb) into preview
   from jsonb_each(new.data)
-  where key in ('category','subtitle','status','homeProject','heroFeatured','imageCaption');
-  private_data := new.data - array['category','subtitle','status','homeProject','heroFeatured','imageCaption'];
+  where key in ('category','subtitle','status','homeProject','heroFeatured','imageCaption','projectUrl');
+  private_data := new.data - array['category','subtitle','status','homeProject','heroFeatured','imageCaption','projectUrl'];
   if private_data <> '{}'::jsonb then
     insert into public.content_details(content_id,data) values(new.id,private_data)
     on conflict(content_id) do update
@@ -47,6 +47,8 @@ create table if not exists public.member_id_counters (
   department_code text primary key check (department_code in ('EC','ME','CS','EE','CE','BT','AI','RB','OT')),
   last_number bigint not null check (last_number > 0)
 );
+alter table public.member_id_counters drop constraint if exists member_id_counters_department_code_check;
+alter table public.member_id_counters add constraint member_id_counters_department_code_check check (department_code in ('EC','ME','CS','EE','CE','BT','AI','RB','OT'));
 alter table public.member_id_counters enable row level security;
 revoke all on public.member_id_counters from public,anon,authenticated;
 
