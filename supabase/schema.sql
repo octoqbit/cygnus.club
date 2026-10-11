@@ -268,8 +268,8 @@ begin
   if new.kind <> 'project' then return new; end if;
   select coalesce(jsonb_object_agg(key,value),'{}'::jsonb) into preview
   from jsonb_each(new.data)
-  where key in ('category','subtitle','status','homeProject','heroFeatured','imageCaption');
-  private_data := new.data - array['category','subtitle','status','homeProject','heroFeatured','imageCaption'];
+  where key in ('category','subtitle','status','homeProject','heroFeatured','imageCaption','projectUrl');
+  private_data := new.data - array['category','subtitle','status','homeProject','heroFeatured','imageCaption','projectUrl'];
   if private_data <> '{}'::jsonb then
     insert into public.content_details(content_id,data) values(new.id,private_data)
     on conflict(content_id) do update
