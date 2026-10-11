@@ -1,5 +1,5 @@
 import { loadContent, imageURL, node } from './lib/content.js';
-import { githubRepositoryURL, projectHref } from './lib/project-data.mjs';
+import { githubRepositoryURL, projectURL, projectHref } from './lib/project-data.mjs';
 import { supabase, checked, requireMember } from './lib/supabase.js';
 import { initializeMemberCta } from './lib/member-cta.js';
 
@@ -55,12 +55,23 @@ async function showProject() {
       setText('#project-image-caption', item.data.imageCaption);
       document.querySelector('#project-tags').replaceChildren(...item.tags.map(tag => node('span', '', tag)));
 
+      const live = projectURL(item.data.projectUrl);
+      if (live) {
+        const liveLink = document.querySelector('#project-live');
+        if (liveLink) {
+          liveLink.href = live;
+          liveLink.hidden = false;
+        }
+      }
+
       const github = githubRepositoryURL(item.data.githubUrl);
       if (github) {
         const link = document.querySelector('#project-github');
         link.href = github;
         link.hidden = false;
-      } else document.querySelector('#project-repo-status').hidden = false;
+      } else if (!live && item.data.category !== 'hardware') {
+        document.querySelector('#project-repo-status').hidden = false;
+      }
 
       const brief = document.querySelector('#project-brief');
       const toc = document.querySelector('#project-sections');
