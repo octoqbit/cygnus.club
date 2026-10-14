@@ -3,18 +3,18 @@ import { createRoot } from 'react-dom/client';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, ArrowDown, Calendar, MapPin, Search, Radio, Zap, Cpu, MoveUpRight, X, Pause, Play, Download } from 'lucide-react';
 import { localDay, eventStatus, filterEvents, nextEvent, daysUntil, calendarFile } from './events-data.mjs';
-import { loadContent, asEvent, imageURL } from './lib/content.js';
+import { loadContent, asEvent, imageURL, imageSrcSet } from './lib/content.js';
 import { hasSessionHint, loginHref } from './lib/session-hint.js';
 import { supabase, checked, requireMember } from './lib/supabase.js';
 import { initializeMemberCta } from './lib/member-cta.js';
 initializeMemberCta();
 import { loadSiteValues } from './lib/site-content.js';
-import bannerImage from './about-assets/banner_notext.jpg';
+const bannerImage = '/about-assets/banner_notext-1280.webp';
 
 function downloadCalendar(event) {
   const url = URL.createObjectURL(new Blob([calendarFile(event)], { type: 'text/calendar;charset=utf-8' }));
   const anchor = document.createElement('a');
-  anchor.href = url; anchor.download = `sac-${event.id}.ics`;
+  anchor.href = url; anchor.download = `cygnus-${event.id}.ics`;
   document.body.append(anchor); anchor.click(); anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -31,8 +31,8 @@ function EventCard({ event, onOpen, paused, day }) {
   function resetTilt() { ref.current.style.setProperty('--tilt-x', '0deg'); ref.current.style.setProperty('--tilt-y', '0deg'); }
   return <motion.article layout={!paused} initial={false} className="ev-ticket" style={{ '--event-accent': event.accentColor }}>
     <div ref={ref} className="ev-ticket-shell" onPointerMove={tilt} onPointerLeave={resetTilt}>
-      <div className="ev-ticket-top"><span>SAC / {event.symbol}</span><span><i />{status.toUpperCase()}</span></div>
-      <div className="ev-ticket-image"><img src={imageURL(event.image)} alt={event.imageAlt||event.title} loading="lazy" width="1536" height="1024" /><span className="ev-image-word" aria-hidden="true">{event.tags[0]}</span><span className="ev-ticket-sticker">{status === 'Past' ? 'BEEN THERE.\nBUILT THAT.' : 'BRING YOUR\nWHAT IF.'}</span><div className="ev-image-scan" aria-hidden="true" /></div>
+      <div className="ev-ticket-top"><span>CYGNUS / {event.symbol}</span><span><i />{status.toUpperCase()}</span></div>
+      <div className="ev-ticket-image"><img src={imageURL(event.image)} srcSet={imageSrcSet(event.image)} sizes="(max-width: 700px) 100vw, 33vw" decoding="async" alt={event.imageAlt||event.title} loading="lazy" width="1536" height="1024" /><span className="ev-image-word" aria-hidden="true">{event.tags[0]}</span><span className="ev-ticket-sticker">{status === 'Past' ? 'BEEN THERE.\nBUILT THAT.' : 'BRING YOUR\nWHAT IF.'}</span><div className="ev-image-scan" aria-hidden="true" /></div>
       <div className="ev-ticket-copy"><span className="ev-kicker">{event.subtitle}</span><h3>{event.shortTitle}</h3><p>{event.description}</p><div className="ev-facts"><span><Calendar size={14} aria-hidden="true" />{event.date}</span><span><MapPin size={14} aria-hidden="true" />{event.location}</span></div><div className="ev-tags"><span>{event.access==='public'?'Public event':'Members only'}</span>{event.tags.map(tag => <span key={tag}>{tag}</span>)}</div></div>
       <div className="ev-ticket-tear" aria-hidden="true"><span /><i /><span /></div>
       <div className="ev-ticket-bottom"><div><span className="ev-kicker">{status === 'Past' ? 'LISTED PRIZE POOL' : 'PRIZES WORTH'}</span><strong>₹{event.prizePool}<small>*</small></strong></div><button type="button" className="ev-open" onClick={() => onOpen(event)} aria-label={`View details for ${event.title}`}><ArrowUpRight aria-hidden="true" /></button></div>
@@ -105,9 +105,9 @@ function EventsPage() {
   return <div className={`ev-world${paused ? ' ev-motion-paused' : ''}`}>
     <div className="ev-atmosphere" aria-hidden="true"><div /><div /></div>
     <section className="ev-hero" aria-labelledby="ev-title">
-      <div className="ev-topline"><span><Radio size={13} />{copy("events-001", "SAC / LIVE TRANSMISSIONS & ARCHIVES")}</span><span>{copy("events-002", "LESS SPECTATING. MORE PARTICIPATING.")}</span></div>
+      <div className="ev-topline"><span><Radio size={13} />{copy("events-001", "CYGNUS / LIVE TRANSMISSIONS & ARCHIVES")}</span><span>{copy("events-002", "LESS SPECTATING. MORE PARTICIPATING.")}</span></div>
       <div className="ev-hero-frame">
-        <img className="ev-hero-image" src={bannerImage} alt="Neon robotics lab with glowing circuits and robotic arms." width="1024" height="1024" fetchPriority="high" />
+        <img className="ev-hero-image" src={bannerImage} srcSet={imageSrcSet(bannerImage)} sizes="100vw" decoding="async" alt="Neon robotics lab with glowing circuits and robotic arms." width="1024" height="1024" fetchPriority="high" />
         <div className="ev-hero-shade" /><div className="ev-scanlines" aria-hidden="true" />
         <div className="ev-orbit-sticker" aria-hidden="true"><span>{copy("events-003", "MAKE SOME")}</span><Zap /><strong>{copy("events-004", "NOISE.")}</strong></div>
         <div className="ev-hero-copy"><p className="ev-kicker"><i />{copy("events-005", "YOUR NEXT GOOD STORY STARTS HERE.")}</p><h1 id="ev-title">{copy("events-006", "EVENTS THAT")}<br />{copy("events-007", "HIT ")}<span>{copy("events-008", "DIFFERENT.")}</span></h1><p>{copy("events-009", "Hack it. Build it. Battle it out.")}<br />{copy("events-010", "Bring your people. Leave with a story.")}</p><a className="ev-button" href="#event-board">{copy("events-011", "FIND YOUR NEXT THING ")}<ArrowDown size={18} /></a></div>
@@ -126,7 +126,7 @@ function EventsPage() {
       <p className="ev-art-note">{copy("events-028", "Promotional and concept artwork. Event details are shown as listed.")}</p>
     </section>
     <section className="ev-playbook"><div><span className="ev-kicker">{copy("events-029", "02 / YOUR ONLY ASSIGNMENT")}</span><h2>{copy("events-030", "SHOW UP.")}<br /><span>{copy("events-031", "GEEK OUT.")}</span></h2><p>{copy("events-032", "You don’t have to know everything.")}<br />{copy("events-033", "You just have to be curious about something.")}</p></div><div className="ev-playbook-steps"><article><span>01</span><div><h3>{copy("events-034", "Pick your rabbit hole.")}</h3><p>{copy("events-035", "Code, circuits, or a robot with an attitude. Follow the thing that pulls you in.")}</p></div><Cpu aria-hidden="true" /></article><article><span>02</span><div><h3>{copy("events-036", "Find your accomplices.")}</h3><p>{copy("events-037", "Bring a friend, or meet someone who asks the same strange questions.")}</p></div><Radio aria-hidden="true" /></article><article><span>03</span><div><h3>{copy("events-038", "Make a little noise.")}</h3><p>{copy("events-039", "Try something. Share the messy version. Give someone else an idea.")}</p></div><Zap aria-hidden="true" /></article></div></section>
-    <section className="ev-cta"><span className="ev-kicker">{copy("events-040", "THE BEST PART IS WHO YOU MEET.")}</span><a href="join.html">{copy("events-041", "COME FOR THE TECH.")}<br /><span>{copy("events-042", "STAY FOR THE PEOPLE.")}</span><MoveUpRight aria-hidden="true" /></a><div className="ev-footer"><a href="index.html">{copy("events-043", "SAC / SENSING & AUTOMATION CLUB")}</a><nav aria-label="Events footer navigation"><a href="projects.html">{copy("events-044", "PROJECTS ↗")}</a><a href="team.html">{copy("events-045", "THE CREW ↗")}</a><button type="button" data-help-center="" aria-haspopup="dialog" aria-controls="sac-help-center" aria-expanded="false" className="help-center-trigger">Help Center</button><a href="privacy.html">Privacy Policy</a><a href="cookies.html">Cookie Policy</a><a href="terms.html">Terms of Service</a></nav><span>{copy("events-046", "© 2026 SAC")}</span></div></section>
+    <section className="ev-cta"><span className="ev-kicker">{copy("events-040", "THE BEST PART IS WHO YOU MEET.")}</span><a href="join.html">{copy("events-041", "COME FOR THE TECH.")}<br /><span>{copy("events-042", "STAY FOR THE PEOPLE.")}</span><MoveUpRight aria-hidden="true" /></a><div className="ev-footer"><a href="index.html">{copy("events-043", "CYGNUS")}</a><nav aria-label="Events footer navigation"><a href="projects.html">{copy("events-044", "PROJECTS ↗")}</a><a href="team.html">{copy("events-045", "THE CREW ↗")}</a><button type="button" data-help-center="" aria-haspopup="dialog" aria-controls="sac-help-center" aria-expanded="false" className="help-center-trigger">Help Center</button><a href="privacy.html">Privacy Policy</a><a href="cookies.html">Cookie Policy</a><a href="terms.html">Terms of Service</a></nav><span>{copy("events-046", "© 2026 CYGNUS")}</span></div></section>
     <button type="button" className="ev-motion-toggle" aria-pressed={paused} disabled={Boolean(reducedMotion)} onClick={() => setManualPause(value => !value)}>{paused ? <Play size={12} /> : <Pause size={12} />}{reducedMotion ? 'REDUCED MOTION' : paused ? 'RESUME MOTION' : 'PAUSE MOTION'}</button>
     <EventDialog event={selected} day={day} onClose={() => setSelected(null)} />
   </div>;

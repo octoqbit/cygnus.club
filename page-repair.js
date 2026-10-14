@@ -176,9 +176,9 @@ trigger?.addEventListener('click', async () => {
     dialog.setAttribute('aria-labelledby', 'repair-title');
     dialog.style.setProperty('--robot-size', `${size}px`);
     dialog.innerHTML = `<svg class="repair-blueprints" aria-hidden="true"></svg><div class="repair-shards" aria-hidden="true"></div>
-        <div class="repair-heading"><span class="repair-eyebrow">SAC / ACCIDENTAL DEMOLITION</span><h2 id="repair-title">Oops, you made a mistake.</h2><p>That was a load-bearing X. Calling our smallest engineer.</p></div>
+        <div class="repair-heading"><span class="repair-eyebrow">CYGNUS / ACCIDENTAL DEMOLITION</span><h2 id="repair-title">Oops, you made a mistake.</h2><p>That was a load-bearing X. Calling our smallest engineer.</p></div>
         <svg class="repair-effects" aria-hidden="true"><path class="repair-seam" pathLength="100" visibility="hidden"/><g class="repair-reticle" visibility="hidden"><circle r="20"/><path d="M-28 0H-12M12 0H28M0-28V-12M0 12V28"/><text y="-34" text-anchor="middle"></text></g><line class="repair-beam" visibility="hidden"/><g class="repair-sparks" visibility="hidden"><circle r="5" fill="#fff4c8"/>${Array.from({ length: 13 }, (_, i) => `<line transform="rotate(${i * 360 / 13})" x1="${8 + i % 3 * 3}" x2="${20 + i % 4 * 7}"/>`).join('')}</g></svg>
-        <div class="repair-robo" aria-label="SAC robot repairing the page">${fallbackRobot}<canvas aria-hidden="true"></canvas><div class="repair-thought" role="status"><small>SAC BOT / THINKING</small><span>Okay… who touched the X?</span></div></div>
+        <div class="repair-robo" aria-label="CYGNUS robot repairing the page">${fallbackRobot}<canvas aria-hidden="true"></canvas><div class="repair-thought" role="status"><small>CYGNUS BOT / THINKING</small><span>Okay… who touched the X?</span></div></div>
         <div class="repair-footer"><div class="repair-chapters" aria-label="Repair stages"><span data-current="true">01 / SURVEY</span><span>02 / RECOVER</span><span>03 / WELD</span><span>04 / VERIFY</span></div><div class="repair-status"><span class="repair-task" role="status">DAMAGE DETECTED</span><span class="repair-count">00 / 24 FIXED</span></div><div class="repair-progress" role="progressbar" aria-label="Page repair" aria-valuemin="0" aria-valuemax="24" aria-valuenow="0"><span></span></div><div class="repair-controls"><button type="button" class="repair-mute" aria-pressed="false">Sound: on</button><span>24 FRAGMENTS · 12 REPAIR SITES</span><button type="button" class="repair-skip" autofocus>Skip & restore ↗</button></div></div>`;
     let frame = 0;
     let model;
@@ -407,7 +407,7 @@ trigger?.addEventListener('click', async () => {
         dialog.dataset.phase = 'complete';
         dialog.querySelector('#repair-title').textContent = 'All fixed. We’re back.';
         dialog.querySelector('.repair-heading p').textContent = 'A little curiosity never broke anything. Permanently.';
-        dialog.querySelector('.repair-eyebrow').textContent = 'SAC / SYSTEM RESTORED';
+        dialog.querySelector('.repair-eyebrow').textContent = 'CYGNUS / SYSTEM RESTORED';
         thought.textContent = 'Good as new. My invoice? One less click on that X.';
         task.textContent = 'ALL SYSTEMS BACK ONLINE';
         sound.play('done');

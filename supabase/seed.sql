@@ -8,7 +8,7 @@ insert into public.content_details(content_id,body) select id,'The club will sha
 insert into public.content(kind,slug,title,summary,image,image_alt,tags,data,published,sort_order) values ('project','rover','ATLAS / ROVER','What if a small rover could explore an unfamiliar space and find its own way back?','/showcase-assets/rover.jpg','ATLAS / ROVER',array['Navigation','Sensors','Embedded control'],'{"category":"robotics","subtitle":"EXP—01 / ROBOTICS CONCEPT","status":"Concept","homeProject":true}'::jsonb,true,0) on conflict(slug) do nothing;
 insert into public.content_details(content_id,body) select id,'The first experiment
 
-Start with a wheeled platform and a distance sensor. Read the surroundings, stop before an obstacle, then add a simple navigation loop. This is a concept study, not a completed SAC project.' from public.content where slug='rover' on conflict(content_id) do nothing;
+Start with a wheeled platform and a distance sensor. Read the surroundings, stop before an obstacle, then add a simple navigation loop. This is a concept study, not a completed CYGNUS project.' from public.content where slug='rover' on conflict(content_id) do nothing;
 insert into public.content(kind,slug,title,summary,image,image_alt,tags,data,published,sort_order) values ('project','vision','IRIS / VISION','A camera sees pixels. A useful system finds a pattern that means something.','/showcase-assets/vision.jpg','IRIS / VISION',array['Computer vision','Python','Edge AI'],'{"category":"ai","subtitle":"EXP—02 / AI CONCEPT","status":"Concept","homeProject":true}'::jsonb,true,1) on conflict(slug) do nothing;
 insert into public.content_details(content_id,body) select id,'The first experiment
 

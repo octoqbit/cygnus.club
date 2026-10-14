@@ -36,3 +36,24 @@ if (videos.length && 'IntersectionObserver' in window) {
     reducedMotion.addEventListener('change', updatePlayback);
     updatePlayback();
 } else videos.forEach(video => { video.controls = true; });
+
+// The hero player lives in an iframe, so pass parent viewport visibility to it.
+const hero = document.querySelector('iframe[title="CYGNUS robot assembly"]');
+if (hero) {
+    let heroVisible = !('IntersectionObserver' in window);
+    const syncHero = () => hero.contentWindow?.postMessage({type: 'cygnus:hero-visibility', visible: heroVisible && !document.hidden}, location.origin);
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(([entry]) => {
+            heroVisible = entry.isIntersecting;
+            syncHero();
+        }, {threshold: 0.05});
+        observer.observe(hero);
+    }
+    hero.addEventListener('load', syncHero);
+    document.addEventListener('visibilitychange', syncHero);
+    window.addEventListener('message', event => {
+        if (event.origin !== location.origin || event.source !== hero.contentWindow) return;
+        if (event.data?.type === 'cygnus:hero-ready') syncHero();
+        if (event.data?.type === 'cygnus:hero-interactive') hero.style.pointerEvents = event.data.interactive ? 'auto' : 'none';
+    });
+}

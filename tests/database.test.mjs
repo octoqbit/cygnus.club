@@ -11,7 +11,7 @@ before(async()=>{
   // below is the actual production SQL, executed by PostgreSQL.
   await db.exec(`create role anon; create role authenticated;
     create schema auth; create schema storage;
-    create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
+    create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb default '{}');
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth,public,storage to anon,authenticated;
     grant execute on function auth.uid() to anon,authenticated;
@@ -21,7 +21,7 @@ before(async()=>{
     grant select,insert,delete on storage.objects to anon,authenticated;`);
   await db.exec(readFileSync('supabase/schema.sql','utf8'));
   await db.exec(readFileSync('supabase/seed.sql','utf8'));
-  for(const [id,email] of [[admin,'admin@test.local'],[pending,'pending@test.local'],[member,'member@test.local']]) await db.query(`insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)`,[id,email,JSON.stringify({name:email,department:'CS',study_year:'2',motivation:'I like robots',role:'admin',status:'approved',avatar:'girl'})]);
+  for(const [id,email] of [[admin,'admin@test.local'],[pending,'pending@test.local'],[member,'member@test.local']]) await db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,now(),$3)`,[id,email,JSON.stringify({name:email,department:'CS',study_year:'2',motivation:'I like robots',role:'admin',status:'approved',avatar:'girl'})]);
   await db.query(`update public.profiles set role='admin',status='approved' where id=$1`,[admin]);
   await db.query(`update public.profiles set status='approved' where id=$1`,[member]);
   eventId=(await db.query(`update public.content set data=data||'{"startDate":"2099-01-01","endDate":"2099-01-02","registrationOpen":true}' where slug='genesis' returning id`)).rows[0].id;
@@ -71,7 +71,7 @@ test('registrations enforce ownership, event type, availability and uniqueness',
 test('admins approve members and IDs remain stable across suspension and reapproval',async()=>{
   await as('authenticated',admin,async()=>{
     await db.query("select public.review_member($1,'approved')",[pending]);
-    const first=(await db.query('select member_id from public.profiles where id=$1',[pending])).rows[0].member_id;assert.equal(first,'SAC-CS-001');
+    const first=(await db.query('select member_id from public.profiles where id=$1',[pending])).rows[0].member_id;assert.equal(first,'CYG-CS-001');
     await db.query("select public.review_member($1,'suspended')",[pending]);
     await db.query("select public.review_member($1,'approved')",[pending]);
     assert.equal((await db.query('select member_id from public.profiles where id=$1',[pending])).rows[0].member_id,first);
@@ -95,6 +95,7 @@ test('admin save is atomic; published content and deletion respect foreign keys'
 }));
 
  test('department migration repairs legacy IDs, preserves issued IDs and is repeatable',async()=>{
+  await db.query("update public.profiles set member_id='SAC-CS-001' where id=$1",[pending]);
   await db.query("update public.profiles set member_id='sac1001',department='ece' where id=$1",[member]);
   const migration=readFileSync('supabase/migrations/20261004_department_member_ids.sql','utf8');
   await db.exec(migration);
@@ -107,6 +108,7 @@ test('admin save is atomic; published content and deletion respect foreign keys'
   assert.equal((await db.query("select public.allocate_member_id('Mechanical') as id")).rows[0].id,'SAC-ME-001');
   await db.query("update public.member_id_counters set last_number=999 where department_code='EC'");
   assert.equal((await db.query("select public.allocate_member_id('ece') as id")).rows[0].id,'SAC-EC-1000');
+  await db.exec(readFileSync('supabase/migrations/20261013_cygnus_rebrand.sql','utf8'));
  });
 
 
@@ -130,7 +132,7 @@ test('members can change all eight emojis while pronouns stay fixed',async()=>{
 
 test('OAuth applications choose pronouns once and cannot resubmit or reserve the admin emoji',async()=>{
   const id='00000000-0000-4000-8000-000000000020';
-  await db.query("insert into auth.users(id,email) values($1,'oauth@example.test')",[id]);
+  await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'oauth@example.test',now())",[id]);
   await as('authenticated',id,async()=>{
     await assert.rejects(db.query("select public.submit_application('New Maker','robot','ece','2','{}','Build robots')"),/Complete all application fields/);
     await db.query("select public.submit_application('New Maker','satellite','ece','2','{}','Build robots','he/him')");
@@ -250,4 +252,92 @@ test('event access can open and close details without exposing projects or draft
   await saveAccess('members');
   for(const [role,id] of [['anon',null],['authenticated',pending]])await as(role,id,async()=>assert.equal((await db.query('select * from public.content_details where content_id=$1',[eventId])).rows.length,0));
   await as('authenticated',member,async()=>assert.equal((await db.query('select * from public.content_details where content_id=$1',[eventId])).rows.length,1));
+});
+
+test('CYGNUS migration preserves issued numbers and accounts, rebrands stored content, and is repeatable',async()=>{
+  const legacy='00000000-0000-4000-8000-000000000101';
+  const unnumbered='00000000-0000-4000-8000-000000000102';
+  const numeric='00000000-0000-4000-8000-000000000103';
+  for(const id of [legacy,unnumbered,numeric]) await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())",[id,`${id}@example.test`]);
+  await db.query("update public.profiles set member_id='SAC-ME-042',department='me',status='suspended',motivation='I joined SAC',name='SAC Maker' where id=$1",[legacy]);
+  await db.query("update public.profiles set department='me',status='approved',submitted_at=now() where id=$1",[unnumbered]);
+  await db.query("update public.profiles set member_id='sac1007',department='me',status='approved' where id=$1",[numeric]);
+  await db.query("insert into public.site_content(id,value) values('cygnus-test','Sensing & Automation Club (SAC) welcomes you. ID: SAC-EC-001. https://example.test/SAC info@saclub.tech'),('cygnus-image','/about-assets/SAC.png')");
+  await db.query("update public.content set summary='Built at SAC',data=data || $1 where id=$2",[JSON.stringify({subtitle:'SAC builders',projectUrl:'https://example.test/SAC'}),projectId]);
+  await db.query("update public.content_details set body='SAC notes: https://example.test/SAC',data=data || $1 where content_id=$2",[JSON.stringify({overview:'Sensing and Automation Club',features:['SAC lab','Build'],githubUrl:'https://github.com/SAclub/SAC',image:'/SAC.png',flag:false}),projectId]);
+  const profiles=(await db.query('select * from public.profiles order by id')).rows;
+  const auth=(await db.query('select * from auth.users order by id')).rows;
+  const registrations=(await db.query('select * from public.registrations order by user_id,event_id')).rows;
+  const sql=readFileSync('supabase/migrations/20261013_cygnus_rebrand.sql','utf8');
+  await db.exec(sql);
+  const migrated=(await db.query('select * from public.profiles order by id')).rows;
+  const withoutId=rows=>rows.map(({member_id,...rest})=>rest);
+  assert.deepEqual(withoutId(migrated),withoutId(profiles));
+  assert.deepEqual((await db.query('select * from auth.users order by id')).rows,auth);
+  assert.deepEqual((await db.query('select * from public.registrations order by user_id,event_id')).rows,registrations);
+  assert.equal(migrated.find(p=>p.id===legacy).member_id,'CYG-ME-042');
+  assert.equal(migrated.find(p=>p.id===unnumbered).member_id,'CYG-ME-043');
+  assert.equal(migrated.find(p=>p.id===numeric).member_id,'CYG-ME-044');
+  for(const profile of profiles.filter(p=>p.member_id?.startsWith('CYG-')))assert.equal(migrated.find(p=>p.id===profile.id).member_id,profile.member_id);
+  assert.equal((await db.query("select value from public.site_content where id='cygnus-test'")).rows[0].value,'CYGNUS welcomes you. ID: CYG-EC-001. https://example.test/SAC info@saclub.tech');
+  assert.equal((await db.query("select value from public.site_content where id='cygnus-image'")).rows[0].value,'/about-assets/SAC.png');
+  const detail=(await db.query('select * from public.content_details where content_id=$1',[projectId])).rows[0];
+  assert.equal(detail.body,'CYGNUS notes: https://example.test/SAC');
+  assert.equal(detail.data.overview,'CYGNUS');
+  assert.deepEqual(detail.data.features,['CYGNUS lab','Build']);
+  assert.equal(detail.data.githubUrl,'https://github.com/SAclub/SAC');
+  assert.equal(detail.data.image,'/SAC.png');
+  assert.equal(detail.data.flag,false);
+  await db.exec(sql);
+  assert.deepEqual((await db.query('select * from public.profiles order by id')).rows,migrated);
+  assert.deepEqual((await db.query('select * from public.content_details where content_id=$1',[projectId])).rows[0],detail);
+  assert.equal((await db.query("select public.allocate_member_id('me') as id")).rows[0].id,'CYG-ME-045');
+  await as('authenticated',admin,async()=>{
+    await db.query("select public.review_member($1,'suspended')",[unnumbered]);
+    await db.query("select public.review_member($1,'approved')",[unnumbered]);
+    assert.equal((await db.query('select member_id from public.profiles where id=$1',[unnumbered])).rows[0].member_id,'CYG-ME-043');
+  });
+  await as('anon',null,()=>assert.rejects(db.query("select public.allocate_member_id('me')"),/permission denied/));
+  await as('authenticated',member,()=>assert.rejects(db.query("select public.allocate_member_id('me')"),/permission denied/));
+});
+
+test('CYGNUS migration rolls back on a conflicting issued number',async()=>{
+  const duplicate='00000000-0000-4000-8000-000000000104';
+  await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'collision@example.test',now())",[duplicate]);
+  await db.query("update public.profiles set member_id='SAC-ME-042',department='me' where id=$1",[duplicate]);
+  const before=(await db.query('select * from public.profiles order by id')).rows;
+  await assert.rejects(db.exec(readFileSync('supabase/migrations/20261013_cygnus_rebrand.sql','utf8')),/conflicts with an existing CYG ID/);
+  await db.exec('rollback');
+  assert.deepEqual((await db.query('select * from public.profiles order by id')).rows,before);
+});
+
+test('memories keep drafts private, allow only admins to publish, and survive migration reruns',async()=>{
+  const migration=readFileSync('supabase/migrations/20261013_club_memories.sql','utf8');
+  await db.exec(migration);
+  let id;
+  await as('authenticated',admin,async()=>{
+    id=(await db.query("insert into public.memories(title,image,image_alt,caption,taken_on) values('First build','/photo.jpg','Students around a circuit','A good afternoon.','2026-10-13') returning id")).rows[0].id;
+    assert.equal((await db.query('select * from public.memories')).rows.length,1);
+  });
+  for(const [role,user] of [['anon',null],['authenticated',member],['authenticated',pending]]) {
+    await as(role,user,async()=>{
+      assert.equal((await db.query('select * from public.memories')).rows.length,0);
+      await assert.rejects(db.query("insert into public.memories(title,image,image_alt,published) values('Bad','/photo.jpg','Photo',true)"),/permission denied|row-level security/);
+    });
+  }
+  await as('authenticated',admin,()=>db.query('update public.memories set published=true where id=$1',[id]));
+  await as('anon',null,async()=>assert.equal((await db.query('select title from public.memories')).rows[0].title,'First build'));
+  await as('authenticated',member,async()=>{
+    assert.equal((await db.query("update public.memories set caption='Tampered' where id=$1 returning id",[id])).rows.length,0);
+    assert.equal((await db.query('delete from public.memories where id=$1 returning id',[id])).rows.length,0);
+  });
+  const original=(await db.query('select * from public.memories')).rows;
+  await db.exec(migration);await db.exec(migration);
+  assert.deepEqual((await db.query('select * from public.memories')).rows,original);
+  await as('authenticated',admin,async()=>{
+    await assert.rejects(db.query("update public.memories set image_alt='' where id=$1",[id]),/check constraint/);
+    await db.query('update public.memories set published=false where id=$1',[id]);
+  });
+  await as('anon',null,async()=>assert.equal((await db.query('select * from public.memories')).rows.length,0));
+  await as('authenticated',admin,()=>db.query('delete from public.memories where id=$1',[id]));
 });

@@ -1,6 +1,8 @@
+import { initializeMemories } from './lib/memories.js';
 import { initializeHome } from './lib/public-content.js';
 import { initializeMemberCta } from './lib/member-cta.js';
 initializeMemberCta();
+void initializeMemories();
 await initializeHome();
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');

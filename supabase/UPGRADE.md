@@ -1,4 +1,4 @@
-# Upgrade the existing SAC Supabase project
+# Upgrade the existing CYGNUS Supabase project
 
 The code changes are local. The hosted Supabase database and Auth settings must also be updated. The steps below use the production domain `https://saclub.tech` and club GitHub `https://github.com/SAclub`.
 
@@ -8,13 +8,13 @@ Open your existing project in Supabase → SQL Editor → New query. Copy the **
 
 The upgrade commits as one transaction and can be rerun safely. It:
 
-- Converts legacy IDs such as `sac1004` to `SAC-CS-001`, `SAC-EC-001`, etc., according to each member’s department. Existing valid department IDs stay the same. Each department has its own counter. User UUIDs, passwords, approval status, and registrations stay intact.
+- Converts legacy IDs such as `sac1004` to `CYG-CS-001`, `CYG-EC-001`, etc., according to each member’s department. Existing department IDs keep their department and number, with `SAC-` changed to `CYG-`. Each department has its own counter. User UUIDs, passwords, approval status, and registrations stay intact.
 - Uses codes `CS`, `EC`, `EE`, `ME`, and `OT`. Blank or unrecognized department names use `OT`. Check the `department` column first if you need to correct one.
 - Preserves existing He/Him and She/Her selections in `profiles.pronouns`, locks them after selection, and adds eight editable emoji choices in `profiles.avatar`. Existing members start with 🤖; admins use the laptop-person emoji. New OAuth users choose pronouns when completing their application.
 - Moves project briefs and repository links into `content_details.data`, protected by approved-member row-level security. Public `content.data` retains preview fields only. Backfills missing member-only briefs and replacement concept artwork. Explicit admin edits, empty fields, custom images, private notes, visibility, and deleted projects are preserved.
 - Updates the signup trigger and profile/application RPCs; ordinary users still cannot change roles, approval status, member IDs, or project content.
 
-The final query shows the resulting member IDs. For a separate verification, run:
+After the upgrade, verify the resulting member IDs with:
 
 ```sql
 select member_id, department, status, pronouns, avatar
@@ -70,6 +70,14 @@ References: [Supabase redirect URLs](https://supabase.com/docs/guides/auth/redir
 
 ## 3. Project publishing requirement
 
-The member account page (including pending accounts), projects page, about page, Terms of Service, and Privacy Policy now state that every project developed under SAC must be published on the club website and uploaded to the official SAC GitHub organization. Members may also post the same projects on their personal GitHub profiles.
+The member account page (including pending accounts), projects page, about page, Terms of Service, and Privacy Policy now state that every project developed under CYGNUS must be published on the club website and uploaded to the official CYGNUS GitHub organization. Members may also post the same projects on their personal GitHub profiles.
 
-Members send project details to the SAC team; admins publish website entries through the existing project editor. These changes do not upload repositories automatically or grant members access to the club GitHub organization.
+Members send project details to the CYGNUS team; admins publish website entries through the existing project editor. These changes do not upload repositories automatically or grant members access to the club GitHub organization.
+
+## CYGNUS rename (13 October 2026)
+
+For an otherwise up-to-date database, run `migrations/20261013_cygnus_rebrand.sql` before publishing the renamed frontend. The combined `upgrade-existing.sql` already includes it. Verify an existing member now has `CYG-EC-001` (with their own department and original number), then approve a new member and confirm the next number. Test sign-in and existing registrations. Review Authentication email subjects, email template branding, and SMTP sender display name in the hosted dashboard; use **CYGNUS**. Keep existing links and sender addresses until their replacements are configured.
+
+## Homepage photo album
+
+Apply `migrations/20261013_club_memories.sql` to enable **Admin → Memories**. It adds the independent `memories` table and access policies. It is also included in `upgrade-existing.sql`. Existing event/project data and images are untouched. Upload and publish a photo from the Memories tab to populate **Life at CYGNUS**; no fictional memories are seeded.

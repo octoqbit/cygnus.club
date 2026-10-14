@@ -1,5 +1,5 @@
 # Project concept artwork
-Generated with the built-in imagegen tool. These are illustrative concept renders, not photographs of completed SAC projects.
+Generated with the built-in imagegen tool. These are illustrative concept renders, not photographs of completed CYGNUS projects.
 
 ## atlas
 

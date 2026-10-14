@@ -1,5 +1,5 @@
-import { loadContent, imageURL, node } from './lib/content.js';
-import { githubRepositoryURL, projectHref } from './lib/project-data.mjs';
+import { loadContent, imageURL, node, setContentImage } from './lib/content.js';
+import { githubRepositoryURL, projectURL, projectHref } from './lib/project-data.mjs';
 import { supabase, checked, requireMember } from './lib/supabase.js';
 import { initializeMemberCta } from './lib/member-cta.js';
 
@@ -37,30 +37,41 @@ async function showProject() {
     const item = projects.find(project => project.slug === slug);
     if (!item) {
       message.replaceChildren(node('h1', '', 'Project not found.'), node('p', '', 'This project may have moved or is not currently published. Explore the collection for available projects.'));
-      document.title = 'Project not found | SAC BTKIT';
+      document.title = 'Project not found | CYGNUS BTKIT';
     } else {
       const details = checked(await supabase.from('content_details').select('body,data').eq('content_id', item.id).maybeSingle());
       if (!details) throw new Error('Project details are unavailable.');
       item.data = { ...item.data, ...details.data };
-      document.title = `${item.title} | SAC projects`;
+      document.title = `${item.title} | CYGNUS projects`;
       document.querySelector('meta[name="description"]').content = item.summary;
       setText('#project-title', item.title);
-      setText('#project-subtitle', item.data.subtitle || 'SAC / PROJECT LAB');
+      setText('#project-subtitle', item.data.subtitle || 'CYGNUS / PROJECT LAB');
       setText('#project-status', item.data.status || 'Project');
       setText('#project-summary', item.summary);
       const picture = document.querySelector('#project-image');
       const src = imageURL(item.image);
-      if (src) { picture.src = src; picture.alt = item.image_alt || item.title; }
+      if (src) { setContentImage(picture, item.image); picture.sizes = '90vw'; picture.alt = item.image_alt || item.title; }
       else picture.parentElement.hidden = true;
       setText('#project-image-caption', item.data.imageCaption);
       document.querySelector('#project-tags').replaceChildren(...item.tags.map(tag => node('span', '', tag)));
+
+      const live = projectURL(item.data.projectUrl);
+      if (live) {
+        const liveLink = document.querySelector('#project-live');
+        if (liveLink) {
+          liveLink.href = live;
+          liveLink.hidden = false;
+        }
+      }
 
       const github = githubRepositoryURL(item.data.githubUrl);
       if (github) {
         const link = document.querySelector('#project-github');
         link.href = github;
         link.hidden = false;
-      } else document.querySelector('#project-repo-status').hidden = false;
+      } else if (!live && item.data.category !== 'hardware') {
+        document.querySelector('#project-repo-status').hidden = false;
+      }
 
       const brief = document.querySelector('#project-brief');
       const toc = document.querySelector('#project-sections');

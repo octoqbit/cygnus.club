@@ -1,5 +1,54 @@
 import { test, expect } from '@playwright/test';
 
+for (const width of [375,1440]) {
+  test(`CYGNUS branding fits public pages and portals at ${width}px`, async ({page},info) => {
+    test.setTimeout(90000);
+    await page.setViewportSize({width,height:900});
+    await page.route('https://sac-test.supabase.co/rest/v1/**',route=>route.fulfill({
+      contentType:'application/json',body:JSON.stringify(route.request().url().includes('/site_content')
+        ? [{id:'home-001-0',value:'SENSING & AUTOMATION CLUB'}, {id:'events-043',value:'SAC / SENSING & AUTOMATION CLUB'}] : [])
+    }));
+    for (const path of ['index','about','join','events','projects','project','team','privacy','cookies','terms','account','admin']) {
+      await page.goto(`/${path}.html`);
+      const brand=page.locator('.cygnus-brand').first();
+      await expect(brand).toBeVisible();
+      await expect(brand.locator('.cygnus-name')).toHaveText('CYGNUS');
+      await expect(brand.locator('.cygnus-descriptor')).toHaveText('The Technical Club');
+      await expect(brand.locator('.cygnus-descriptor')).toBeVisible();
+      if (path === 'index') {
+        await expect(page.locator('footer .cygnus-descriptor')).toHaveText('The Technical Club');
+      } else {
+        await expect(page.locator('footer .cygnus-descriptor')).toHaveCount(0);
+      }
+      await expect(brand.locator('.cygnus-name')).toHaveCSS('background-image', /cygnus-(?:light|dark)-web\.webp/);
+      await expect(brand.locator('img')).toHaveJSProperty('complete',true);
+      expect(await brand.locator('img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+      if (['events','projects','project','account','admin'].includes(path)) {
+        await expect(brand.locator('img')).toHaveAttribute('src','/brand/cygnus-dark-web.webp');
+        await expect(brand.locator('.cygnus-name')).toHaveCSS('background-image', /cygnus-dark-web\.webp/);
+        await expect(brand.locator('.cygnus-name')).toHaveCSS('mix-blend-mode', 'screen');
+        await expect(brand.locator('.cygnus-symbol-dark')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+      } else {
+        await expect(brand.locator('img')).toHaveAttribute('src','/brand/cygnus-symbol-web.png');
+      }
+      const box=await brand.boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x+box.width).toBeLessThanOrEqual(width);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+      await expect(page).toHaveTitle(/CYGNUS/);
+      await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href','/cygnus-favicon.svg');
+      if (['index','events','projects','team','account','admin'].includes(path)) await page.screenshot({path:info.outputPath(`${path}-${width}.png`)});
+      if(path==='index') {
+        await expect(page.locator('[data-cms="home-001"]')).toHaveText('CYGNUS');
+        const robot=page.frameLocator('iframe[title="CYGNUS robot assembly"]');
+        await expect(robot.locator('.cygnus-chip-wordmark')).toHaveAttribute('aria-label','CYGNUS');
+        await expect(robot.locator('.cygnus-chip-wordmark image')).toHaveAttribute('href','../brand/cygnus-dark-web.webp');
+      }
+      if(path==='events') await expect(page.locator('.ev-footer > a')).toHaveText('CYGNUS');
+    }
+  });
+}
+
 test('Help Center opens on the current page and closes accessibly', async ({ page }, info) => {
   for (const [index, path] of ['index','join','about','events','projects','team','privacy','cookies','terms'].entries()) {
     await page.setViewportSize(index % 2 ? {width:375,height:812} : {width:1440,height:1000});
@@ -7,10 +56,10 @@ test('Help Center opens on the current page and closes accessibly', async ({ pag
     const url = page.url();
     const trigger = page.getByRole('button', {name:'Help Center',exact:true});
     await trigger.click();
-    const banner = page.getByRole('dialog', {name:'Contact Team SAC'});
+    const banner = page.getByRole('dialog', {name:'Contact Team CYGNUS'});
     await expect(banner).toBeVisible();
-    await expect(banner.getByText('info@saclub.tech', {exact:true})).toBeVisible();
-    await expect(banner.getByRole('link', {name:'info@saclub.tech',exact:true})).toHaveAttribute('href', 'mailto:info@saclub.tech');
+    await expect(banner.getByText('cygnus@btkit.org', {exact:true})).toBeVisible();
+    await expect(banner.getByRole('link', {name:'cygnus@btkit.org',exact:true})).toHaveAttribute('href', 'mailto:cygnus@btkit.org');
     await expect(page).toHaveURL(url);
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const box = await banner.boundingBox();
@@ -50,11 +99,11 @@ test('policy links work and policy pages fit mobile screens', async ({ page }) =
 
 test('public SEO assets identify the club in Dwarahat and exclude member portals from sitemap', async ({ page, request }) => {
   await page.goto('/index.html');
-  await expect(page).toHaveTitle('Sensing and Automation Club, Dwarahat');
+  await expect(page).toHaveTitle('CYGNUS | The Technical Club, Dwarahat');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://saclub.tech/index.html');
   const club = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());
   expect(club.url).toBe('https://saclub.tech/index.html');
-  expect(club.alternateName).toContain('SAC Dwarahat');
+  expect(club.alternateName).toContain('CYGNUS Dwarahat');
   expect(club.address.addressLocality).toBe('Dwarahat');
   const sitemap = await request.get('/sitemap.xml');
   expect(sitemap.ok()).toBe(true);

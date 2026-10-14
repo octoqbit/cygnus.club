@@ -21,15 +21,12 @@
         class="robot-assembly"
         width="880"
         height="1920"
-        autoplay
         loop
         muted
         playsinline
-        preload="auto"
+        preload="none"
         aria-label="White mechanical robot assembling around a glowing orange AI core"
       >
-        <source src="assets/robot-assembly.webm" type="video/webm">
-        <source src="assets/robot-assembly-safari.mp4" type='video/mp4; codecs="hvc1"'>
       </video>
       <!-- Only the small front plate changes; the original video retains the
            chip thickness, contacts, lighting, robot and mechanical motion. -->
@@ -46,8 +43,13 @@
         </defs>
         <g clip-path="url(#chip-panel-occlusion)">
           <g id="chip-front" visibility="hidden">
-            <image href="assets/sac-chip-face.png" width="1000" height="1000"
-                   clip-path="url(#chip-front-outline)"/>
+            <g clip-path="url(#chip-front-outline)">
+              <rect width="1000" height="1000" fill="#20292d"/>
+              <rect x="34" y="34" width="932" height="932" rx="100" fill="none" stroke="#81e8ee" stroke-width="8"/>
+              <g fill="#bdc7cc"><circle cx="95" cy="95" r="17"/><circle cx="905" cy="95" r="17"/><circle cx="95" cy="905" r="17"/><circle cx="905" cy="905" r="17"/></g>
+              <svg x="120" y="180" width="760" height="420" viewBox="260 110 1020 510" style="mix-blend-mode:screen"><image href="../brand/cygnus-dark-web.webp" width="1536" height="1024"/></svg>
+              <svg class="cygnus-chip-wordmark" x="120" y="680" width="760" height="130" viewBox="145 620 1240 150" role="img" aria-label="CYGNUS" style="mix-blend-mode:screen"><image href="../brand/cygnus-dark-web.webp" width="1536" height="1024"/></svg>
+            </g>
           </g>
         </g>
       </svg>

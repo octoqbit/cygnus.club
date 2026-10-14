@@ -1,4 +1,4 @@
-# Saclub
+# CYGNUS — The Technical Club
 
 ### Project pages and admin editing
 
@@ -20,8 +20,26 @@ Timed boot screens have been removed. Guest project clicks go directly to login 
 
 ### Search visibility and support
 
-Public metadata, organization structured data, `public/robots.txt`, and `public/sitemap.xml` currently use `https://saclub.tech` as the production domain, with `https://saclub.tech/index.html` as the canonical homepage. If the production domain changes, update the absolute URLs in the public HTML files and these two crawler files together. Help Center opens a contact banner on the current page with Team SAC information and `info@saclub.tech`; privacy, cookies, and terms are standalone static pages included in the Vite build.
+Public metadata, organization structured data, `public/robots.txt`, and `public/sitemap.xml` currently use `https://saclub.tech` as the production domain, with `https://saclub.tech/index.html` as the canonical homepage. If the production domain changes, update the absolute URLs in the public HTML files and these two crawler files together. Help Center opens a contact banner on the current page with Team CYGNUS information and `cygnus@btkit.org`; privacy, cookies, and terms are standalone static pages included in the Vite build.
 
 After deploying, verify the production domain in Google Search Console and submit `https://saclub.tech/sitemap.xml`. Request indexing of the homepage. Search ranking is determined by Google and cannot be guaranteed. Account and admin pages use `noindex`; authentication and database policies remain the actual access controls.
 
-If production still issues IDs like `sac1001` or `SAC-1001`, apply `supabase/migrations/20261004_department_member_ids.sql` in the existing project's Supabase SQL editor. A frontend deployment does not apply SQL migrations. This migration preserves issued department IDs and converts legacy numbers using each profile's department. Review department values first; unrecognized values map to `OT`. The database regression suite verifies conversion, repeatability, per-department numbering, and reapproval stability. Do not rerun the initial schema against the existing project.
+### CYGNUS rename
+
+The club is **CYGNUS**, described as **The Technical Club**. Before deploying this frontend to an existing database, run [the CYGNUS migration](supabase/migrations/20261013_cygnus_rebrand.sql) in the Supabase SQL editor. It changes `SAC-EC-001` to `CYG-EC-001` while preserving the department and number, continues each department's counter, and updates saved website/event/project copy. Existing accounts, approvals, registrations, content access, and user-written applications stay intact. It is transactional and safe to rerun; a conflicting issued ID stops the migration instead of renumbering a member silently. Older numeric IDs are assigned a department number. The combined `upgrade-existing.sql` includes this migration; do not run the old department migration after it.
+
+The club contact address is `cygnus@btkit.org`. The domain `saclub.tech` and GitHub organization `SAclub` remain configured until replacements are provided. A domain change also needs hosting, redirects, authentication callback URLs, and email settings updated. Hosted Supabase email template copy is configured separately; use CYGNUS there too (see [upgrade guide](supabase/UPGRADE.md)).
+
+The temporary symbol comes from the supplied futuristic CYGNUS artwork, with all source text removed. Asset details: [CYGNUS branding](docs/cygnus-branding.md). **Life at CYGNUS** replaces the second homepage event section. Add photographs through **Admin → Memories**. Apply [the memories migration](supabase/migrations/20261013_club_memories.sql) on an existing database (also included in the combined upgrade). New databases include it in `schema.sql`.
+
+### Life at CYGNUS photo album
+
+In **Admin → Memories**, upload a photo or supply an HTTPS image URL, enter its title and accessible image description, then optionally add a caption, date, and category. Save a draft or select **Publish on homepage**. Lower display-order numbers come first; the first published photo becomes the large featured image. Editing, unpublishing, and deleting album entries do not affect events. Uploaded files use the existing public image bucket; draft records are readable only by approved administrators.
+
+The homepage shows six photos initially, with **More moments** for the rest. Click a photo to open the viewer; arrow buttons/keys browse, and Escape closes it and restores focus. With no published photos, a designed empty album appears—no generated pictures are presented as club memories. Event and album requests run independently. Edit the section's heading and introduction in **Website content → Home · Memories**.
+
+### Public team directory
+
+Use **Admin → Team → Add person** to enter a name, choose Builders, Thinkers, Shapers, Connectors, or Storytellers, and optionally add a public email and a LinkedIn `/in/` profile URL (with or without `https://`; regional links are accepted). **Publish person** makes the entry visible immediately. Select **Edit** to update their details or move them to another category; **Remove person** removes their public listing. This does not alter their club account.
+
+On the Team page, selecting a category opens its list of names. Selecting a name expands that person's contact links. Empty categories show a coming-soon message; missing contact details stay unset. No people are seeded or copied from member accounts. Entries use separate `team-person-*` rows in the existing `site_content` table and its existing public-read/admin-write policies; no new database migration is required.

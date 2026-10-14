@@ -6,11 +6,11 @@ test.beforeEach(async({page})=>{await page.route('https://fonts.googleapis.com/*
 
 const adminId='00000000-0000-4000-8000-000000000001',memberId='00000000-0000-4000-8000-000000000002',eventId='00000000-0000-4000-8000-000000000003',projectId='00000000-0000-4000-8000-000000000004';
 async function mock(page,{role='admin',signedIn=false,status='approved',empty=false}={}){
-  const profile={id:role==='admin'?adminId:memberId,email:`${role}@example.test`,name:role==='admin'?'Alex Admin':'Jamie Member',avatar:role==='admin'?'technologist':'robot',pronouns:'he/him',role,status,member_id:'SAC-CS-001',department:'CS',study_year:'2',interests:['Robotics'],motivation:'I want to build robots.',submitted_at:'2026-01-01',created_at:'2026-01-01'};
+  const profile={id:role==='admin'?adminId:memberId,email:`${role}@example.test`,name:role==='admin'?'Alex Admin':'Jamie Member',avatar:role==='admin'?'technologist':'robot',pronouns:'he/him',role,status,member_id:'CYG-CS-001',department:'CS',study_year:'2',interests:['Robotics'],motivation:'I want to build robots.',submitted_at:'2026-01-01',created_at:'2026-01-01'};
   const applicant={...profile,id:'00000000-0000-4000-8000-000000000005',name:'New Maker',email:'maker@example.test',role:'member',status:'pending',member_id:null};
   const user={id:profile.id,email:profile.email,aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-01-01'};
   const session={access_token:'test-access-token',refresh_token:'test-refresh-token',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
-  const state={profile,items:empty?[]:[{id:eventId,kind:'event',slug:'future-build',title:'Future Build',summary:'Build something together.',image:'/about-assets/ai_hackathon.jpg',image_alt:'Robotics workshop',tags:['Robotics'],published:true,sort_order:1,data:{shortTitle:'FUTURE BUILD',subtitle:'A HANDS-ON WORKSHOP',startDate:'2099-01-01',endDate:'2099-01-02',location:'The lab',prizePool:'1,000',symbol:'01',accentColor:'#00e5ff',homeBeyond:true,homeExperience:true,registrationOpen:true}},{id:projectId,kind:'project',slug:'atlas',title:'Atlas Rover',summary:'Public rover preview.',image:'/showcase-assets/rover.jpg',image_alt:'Rover',tags:['Robotics'],published:true,sort_order:1,data:{category:'robotics',subtitle:'AUTONOMOUS EXPLORATION',status:'Concept',homeProject:true}}],projectDetails:{},values:{},registrations:[],calls:[],applicant,privateBody:'Members-only instructions. Bring your robot kit.'};
+  const state={profile,items:empty?[]:[{id:eventId,kind:'event',slug:'future-build',title:'Future Build',summary:'Build something together.',image:'/about-assets/ai_hackathon.jpg',image_alt:'Robotics workshop',tags:['Robotics'],published:true,sort_order:1,data:{shortTitle:'FUTURE BUILD',subtitle:'A HANDS-ON WORKSHOP',startDate:'2099-01-01',endDate:'2099-01-02',location:'The lab',prizePool:'1,000',symbol:'01',accentColor:'#00e5ff',homeBeyond:true,homeExperience:true,registrationOpen:true}},{id:projectId,kind:'project',slug:'atlas',title:'Atlas Rover',summary:'Public rover preview.',image:'/showcase-assets/rover.jpg',image_alt:'Rover',tags:['Robotics'],published:true,sort_order:1,data:{category:'robotics',subtitle:'AUTONOMOUS EXPLORATION',status:'Concept',homeProject:true}}],memories:[],projectDetails:{},values:{},registrations:[],calls:[],applicant,privateBody:'Members-only instructions. Bring your robot kit.'};
   if(signedIn)await page.addInitScript(session=>localStorage.setItem('sb-sac-test-auth-token',JSON.stringify(session)),session);
   await page.route('https://sac-test.supabase.co/**',async route=>{
     const req=route.request(),url=new URL(req.url()),path=url.pathname,method=req.method(),body=req.headers()['content-type']?.includes('application/json')?req.postDataJSON():null;
@@ -23,17 +23,31 @@ async function mock(page,{role='admin',signedIn=false,status='approved',empty=fa
     else if(path.includes('/auth/v1/signup'))data={user:{...user,identities:[{}]},session:null};
     else if(path.includes('/auth/v1/recover'))data={};
     else if(path.endsWith('/profiles'))data=url.searchParams.has('id')?state.profile:[state.profile,state.applicant];
-    else if(path.endsWith('/rpc/review_member')){state.applicant.status=body.decision;state.applicant.member_id='SAC-CS-002';data=null;}
+    else if(path.endsWith('/rpc/review_member')){state.applicant.status=body.decision;state.applicant.member_id='CYG-CS-002';data=null;}
     else if(path.endsWith('/rpc/save_profile')){state.profile.name=body.display_name;state.profile.avatar=body.emoji;data=null;}
     else if(path.endsWith('/rpc/save_content')){const item={...body.item,id:body.item.id||crypto.randomUUID()};if(item.kind==='project'){const keys=['category','subtitle','status','homeProject','heroFeatured','imageCaption'];state.projectDetails[item.id]=Object.fromEntries(Object.entries(item.data).filter(([key])=>!keys.includes(key)));item.data=Object.fromEntries(Object.entries(item.data).filter(([key])=>keys.includes(key)));}state.items=state.items.filter(i=>i.id!==item.id).concat(item);state.privateBody=body.private_body;data=item.id;}
+    else if(path.endsWith('/memories')) {
+      const id=url.searchParams.get('id')?.replace('eq.','');
+      if(method==='POST'){const item={...body,id:crypto.randomUUID()};state.memories.push(item);data={id:item.id};}
+      else if(method==='PATCH'){state.memories=state.memories.map(item=>item.id===id?{...item,...body}:item);data={id};}
+      else if(method==='DELETE'){state.memories=state.memories.filter(item=>item.id!==id);data={id};}
+      else data=state.memories.filter(item=>!url.searchParams.has('published')||item.published).sort((a,b)=>a.sort_order-b.sort_order);
+    }
     else if(path.endsWith('/content_details'))data={body:state.privateBody,data:state.projectDetails[url.searchParams.get('content_id')?.replace('eq.','')]||{}};
-    else if(path.endsWith('/site_content')){if(method==='POST'){for(const row of body)state.values[row.id]=row.value;}data=Object.entries(state.values).map(([id,value])=>({id,value}));}
+    else if(path.endsWith('/site_content')){
+      if(method==='POST'){for(const row of body)state.values[row.id]=row.value;}
+      if(method==='DELETE'){
+        const id=url.searchParams.get('id')?.replace('eq.','');
+        data=id in state.values?[{id}]:[];
+        delete state.values[id];
+      }else data=Object.entries(state.values).map(([id,value])=>({id,value}));
+    }
     else if(path.endsWith('/content')){
       if(method==='DELETE'){state.items=state.items.filter(i=>`eq.${i.id}`!==url.searchParams.get('id'));data=null;}
       else data=state.items.filter(i=>(!url.searchParams.has('kind')||`eq.${i.kind}`===url.searchParams.get('kind'))&&(!url.searchParams.has('published')||i.published));
     }
     else if(path.endsWith('/registrations')){
-      if(method==='POST')state.registrations.push({...body,created_at:new Date().toISOString(),content:{title:'Future Build'},profiles:{name:'Jamie',email:'member@example.test',member_id:'SAC-CS-001'}});
+      if(method==='POST')state.registrations.push({...body,created_at:new Date().toISOString(),content:{title:'Future Build'},profiles:{name:'Jamie',email:'member@example.test',member_id:'CYG-CS-001'}});
       if(method==='DELETE')state.registrations=[];
       data=req.headers().accept?.includes('application/vnd.pgrst.object+json')?(state.registrations[0]||null):state.registrations;
     }
@@ -50,6 +64,125 @@ test('admin login is clean on desktop and mobile; non-admin login is rejected',a
   await page.screenshot({path:info.outputPath('admin-login-mobile.png'),fullPage:true});
   await page.getByLabel('Admin ID (email)').fill('member@example.test');await page.getByLabel('Password',{exact:true}).fill('test-password-123');await page.getByRole('button',{name:'Sign in to admin'}).click();
   await expect(page.getByRole('alert')).toContainText('Invalid login Credentials');
+});
+
+test('admin publishes, edits, unpublishes and removes a homepage memory',async({page},info)=>{
+  const state=await mock(page,{signedIn:true});await page.goto('/admin');
+  await page.getByRole('button',{name:'Memories',exact:true}).click();
+  await page.getByRole('button',{name:'Add memory'}).click();
+  await page.route('**/storage/v1/object/content-images/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({Key:'content-images/memory.jpg'})}));
+  await page.route('**/storage/v1/object/public/content-images/**',route=>route.fulfill({path:'about-assets/ai_hackathon.jpg',contentType:'image/jpeg'}));
+  await page.getByLabel('Upload a photo').setInputFiles('about-assets/ai_hackathon.jpg');
+  await expect(page.getByLabel('Photo URL',{exact:true})).toHaveValue(/https:\/\/sac-test.supabase.co\/storage\/v1\/object\/public\/content-images\//);
+  await page.getByLabel('Image description (accessibility)').fill('Students working together at a table');
+  await page.getByLabel('Memory title').fill('Our first build night');
+  await page.getByLabel('Caption',{exact:true}).fill('One circuit. Many ideas.');
+  await page.getByLabel('Date taken').fill('2026-10-13');
+  await page.getByLabel('Category',{exact:true}).selectOption('Build sessions');
+  await page.getByRole('button',{name:'Save memory'}).click();
+  await expect(page.getByRole('status')).toHaveText('Memory saved as a draft.');
+  await page.goto('/');await expect(page.locator('.memories-empty')).toBeVisible();
+  await expect(page.locator('[data-event-carousel]')).toHaveCount(1);
+  await page.goto('/admin');await page.getByRole('button',{name:'Memories',exact:true}).click();
+  await page.getByRole('button',{name:'Edit',exact:true}).click();
+  await page.getByLabel('Publish on homepage').check();
+  await page.getByRole('button',{name:'Save memory'}).click();
+  await expect(page.getByRole('status')).toHaveText('Memory published to Life at CYGNUS.');
+  await page.goto('/');await expect(page.locator('.memory-showcase-title')).toHaveText('Our first build night');
+  await expect(page.locator('.memory-showcase-caption')).toHaveText('One circuit. Many ideas.');
+  await page.goto('/admin');await page.getByRole('button',{name:'Memories',exact:true}).click();
+  await page.getByRole('button',{name:'Edit',exact:true}).click();
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:info.outputPath('memory-editor-mobile.png'),fullPage:true});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.getByLabel('Caption',{exact:true}).fill('The edited story.');await page.getByLabel('Publish on homepage').uncheck();
+  await page.getByRole('button',{name:'Save memory'}).click();await expect.poll(()=>state.memories[0].caption).toBe('The edited story.');
+  await page.goto('/');await expect(page.locator('.memories-empty')).toBeVisible();
+  await page.goto('/admin');await page.getByRole('button',{name:'Memories',exact:true}).click();await page.getByRole('button',{name:'Edit',exact:true}).click();
+  page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Delete memory'}).click();await expect.poll(()=>state.memories.length).toBe(0);
+});
+
+for(const width of [390,1440])test(`memories showcase and corner peel work at ${width}px`,async({page},info)=>{
+  const state=await mock(page);
+  state.values['home-memory-03-0']='LIFE AT';
+  // Existing artwork is a test fixture, never a seeded club memory.
+  state.memories=Array.from({length:8},(_,i)=>({id:`memory-${i}`,title:`Build moment ${i+1}`,caption:'The people behind the projects.',image:'/about-assets/ai_hackathon.jpg',image_alt:'Test workshop photograph',taken_on:'2026-10-13',category:'Workshops',sort_order:i,published:i<7}));
+  await page.setViewportSize({width,height:900});await page.goto('/');
+  await expect(page.locator('#memories-compartment')).toBeVisible();
+  await expect(page.locator('.poster-count')).toHaveText('01 / 07');
+  await expect(page.locator('.memory-showcase-title')).toHaveText('Build moment 1');
+  const opener = page.getByRole('button',{name:'Open memory details',exact:true});
+  const viewer = page.getByRole('dialog',{name:'Build moment 1'});
+  await expect(page.locator('#memory-viewer')).not.toBeVisible();
+  await expect(page.locator('#memories-title')).toHaveText('Moments atCYGNUS.');
+  await opener.focus();
+  await page.keyboard.press('Enter');
+  await expect(viewer).toBeVisible();
+  await expect(viewer.locator('.memory-viewer-image')).toHaveAttribute('alt','Test workshop photograph');
+  await expect(viewer.locator('.memory-caption')).toHaveText('The people behind the projects.');
+  await expect(viewer.locator('.memory-meta')).toHaveText('Workshops · 13 Oct 2026');
+  await page.screenshot({path:info.outputPath(`memory-popup-${width}.png`)});
+  const box = await viewer.boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(width);
+  expect(box.y + box.height).toBeLessThanOrEqual(900);
+  await page.clock.install();
+  await page.clock.runFor(5000);
+  await expect(page.locator('.poster-count')).toHaveText('01 / 07');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#memory-viewer-title')).toHaveText('Build moment 7');
+  await page.getByRole('button',{name:'Next memory',exact:true}).click();
+  await expect(page.locator('#memory-viewer-title')).toHaveText('Build moment 1');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#memory-viewer')).not.toBeVisible();
+  await expect(opener).toBeFocused();
+  await expect(page.locator('html')).not.toHaveClass(/memory-viewer-open/);
+  await opener.click();
+  await page.getByRole('button',{name:'Close memory',exact:true}).click();
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await page.mouse.click(2,2);
+  await expect(page.locator('#memory-viewer')).not.toBeVisible();
+  await page.locator('#memories').scrollIntoViewIfNeeded();
+  await page.screenshot({path:info.outputPath(`memories-${width}.png`),fullPage:false});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.getByRole('button',{name:'Next photo',exact:true}).click();
+  await expect(page.locator('.poster-count')).toHaveText('02 / 07');
+  await expect(page.locator('.memory-showcase-title')).toHaveText('Build moment 2');
+  await expect(page.locator('.poster-viewport')).not.toHaveClass(/is-peeling/);
+  await page.getByRole('button',{name:'Previous photo',exact:true}).click();
+  await expect(page.locator('.poster-count')).toHaveText('01 / 07');
+  await expect(page.locator('.memory-showcase-title')).toHaveText('Build moment 1');
+});
+
+test('a single memory opens with optional details absent and navigation disabled',async({page})=>{
+  const state=await mock(page);
+  state.memories=[{id:'single',title:'A shared afternoon',caption:'',image:'/showcase-assets/crew.jpg',image_alt:'Club members together',taken_on:null,category:'Team moments',sort_order:0,published:true}];
+  await page.setViewportSize({width:390,height:844});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('/');
+  await expect(page.locator('.poster-count')).toHaveText('01 / 01');
+  await page.getByRole('button',{name:'Open memory details',exact:true}).click();
+  const viewer=page.getByRole('dialog',{name:'A shared afternoon'});
+  await expect(viewer).toBeVisible();
+  await expect(viewer.locator('.memory-meta')).toHaveText('Team moments');
+  await expect(viewer.locator('.memory-caption')).toBeEmpty();
+  await expect(viewer.getByRole('button',{name:'Next memory'})).toBeDisabled();
+  await expect(viewer.getByRole('button',{name:'Previous memory'})).toBeDisabled();
+  await viewer.getByRole('button',{name:'Close memory'}).click();
+  await expect(viewer).not.toBeVisible();
+});
+
+test('album loads independently, retries failures, and keeps an honest empty state',async({page},info)=>{
+  await mock(page);let attempts=0;
+  await page.route('**/rest/v1/memories?**',route=>{
+    attempts++;
+    return route.fulfill({status:attempts===1?403:200,contentType:'application/json',body:JSON.stringify(attempts===1?{message:'Unavailable',code:'42501'}:[])});
+  });
+  await page.goto('/');await expect(page.getByText('The album couldn’t load. Please try again.')).toBeVisible();
+  await expect(page.locator('[data-event-carousel] .home-event-slide')).toHaveCount(1);
+  await page.getByRole('button',{name:'TRY AGAIN'}).click();await expect(page.locator('.memories-empty')).toBeVisible();
+  await page.locator('#memories').scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('empty-album.png')});
 });
 test('admin can add and delete an event, edit website text, and review an applicant',async({page},info)=>{
   const state=await mock(page,{signedIn:true});await page.goto('/admin');
@@ -129,8 +262,8 @@ test('admin project edits persist in the detail page, card, and hero',async({pag
   await page.getByRole('row').filter({hasText:'Atlas Rover'}).getByRole('button',{name:'Edit'}).click();
   await expect(page.getByRole('textbox',{name:'Project overview',exact:true})).toHaveValue('An editable rover brief for a supervised navigation experiment.');
   await page.goto('/projects.html');
-  await expect(page.locator('[data-project-hero] img')).toHaveAttribute('src','/showcase-assets/project-atlas.jpg');
-  await expect(page.locator('.experiment-image img')).toHaveAttribute('src','/showcase-assets/project-atlas.jpg');
+  await expect(page.locator('[data-project-hero] img')).toHaveAttribute('src','/showcase-assets/project-atlas-1280.webp');
+  await expect(page.locator('.experiment-image img')).toHaveAttribute('src','/showcase-assets/project-atlas-1280.webp');
   await page.getByRole('link',{name:'Explore Atlas Rover'}).click();
   await expect(page.getByText('An editable rover brief for a supervised navigation experiment.')).toBeVisible();
   await expect(page.getByRole('link',{name:'VIEW ON GITHUB'})).toHaveAttribute('href','https://github.com/example/atlas');
@@ -150,7 +283,7 @@ test('all original concepts have public artwork and protected member briefs',asy
   await page.addInitScript(()=>sessionStorage.setItem('sac_booted','true'));
   const state=await mock(page,{role:'member',signedIn:true});
   const {projectDefaults}=await import('../lib/project-data.mjs');
-  state.items=Object.keys(projectDefaults).map((slug,i)=>({id:`project-${i}`,slug,kind:'project',title:['ATLAS / ROVER','IRIS / VISION','PULSE / NETWORK','DEXTER / ARM'][i],summary:'A proposed SAC build.',image:i%2?'/showcase-assets/vision.jpg':'/showcase-assets/rover.jpg',image_alt:'Concept',tags:['Robotics'],published:true,sort_order:i,data:{category:'robotics',status:'Concept',homeProject:true}}));
+  state.items=Object.keys(projectDefaults).map((slug,i)=>({id:`project-${i}`,slug,kind:'project',title:['ATLAS / ROVER','IRIS / VISION','PULSE / NETWORK','DEXTER / ARM'][i],summary:'A proposed CYGNUS build.',image:i%2?'/showcase-assets/vision.jpg':'/showcase-assets/rover.jpg',image_alt:'Concept',tags:['Robotics'],published:true,sort_order:i,data:{category:'robotics',status:'Concept',homeProject:true}}));
   for(const item of state.items)state.projectDetails[item.id]=Object.fromEntries(['overview','challenge','approach','features','techStack','milestones','nextSteps'].map(key=>[key,`Member-only ${key} for ${item.title}`]));
   await page.goto('/projects.html');
   await expect(page.locator('.experiment-card')).toHaveCount(4);
@@ -164,7 +297,9 @@ test('all original concepts have public artwork and protected member briefs',asy
     await expect(page.locator('#project-brief .project-section')).toHaveCount(7);
     await expect(page.locator('#project-github')).toBeHidden();
     await expect(page.getByText('Repository link coming soon.')).toBeVisible();
-    await expect(page.locator('#project-image')).toHaveJSProperty('naturalWidth',1400);
+    await expect(page.locator('#project-image')).toHaveJSProperty('complete',true);
+    expect(await page.locator('#project-image').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+    await expect(page.locator('#project-image')).toHaveAttribute('srcset', /640w, .*1280w/);
   }
   await page.setViewportSize({width:390,height:844});await page.goto('/projects.html');
   await expect(page.locator('[data-project-hero] a')).toHaveCount(3);
@@ -210,7 +345,7 @@ test('CMS text hooks resolve to the intended text without replacing child markup
 
 test('applications collect a chosen password and emoji without requesting admin privileges',async({page})=>{
   const state=await mock(page);await page.goto('/join.html');
-  await page.getByLabel('First Name').fill('Sam');await page.getByLabel('Last Name').fill('Maker');await page.getByLabel('Email',{exact:true}).fill('sam@example.test');await page.getByLabel('Department',{exact:true}).selectOption('cs');await page.getByLabel('Year of Study').selectOption('2');await page.getByLabel('Why do you want to join SAC?').fill('I want to learn robotics.');await page.getByLabel('Choose your password').fill('a-long-test-password');await page.getByRole('radio',{name:'She/Her',exact:true}).check();await page.getByRole('radio',{name:'Satellite',exact:true}).check();await page.getByRole('button',{name:'SUBMIT APPLICATION'}).click();
+  await page.getByLabel('First Name').fill('Sam');await page.getByLabel('Last Name').fill('Maker');await page.getByLabel('Email',{exact:true}).fill('sam@example.test');await page.getByLabel('Department',{exact:true}).selectOption('cs');await page.getByLabel('Year of Study').selectOption('2');await page.getByLabel('Why do you want to join CYGNUS?').fill('I want to learn robotics.');await page.getByLabel('Choose your password').fill('a-long-test-password');await page.getByRole('radio',{name:'She/Her',exact:true}).check();await page.getByRole('radio',{name:'Satellite',exact:true}).check();await page.getByRole('button',{name:'SUBMIT APPLICATION'}).click();
   await expect(page.getByRole('status')).toContainText('Check your email');
   const signup=state.calls.find(c=>c.path.endsWith('/signup')).body;
   expect(signup.data.avatar).toBe('satellite');expect(signup.data.pronouns).toBe('she/her');expect(state.calls.find(c=>c.path.endsWith('/signup')).url).toContain('redirect_to=https%3A%2F%2Fsaclub.tech%2Faccount%3Fmode%3Dlogin%26confirmed%3D1');expect(signup.data.name).toBe('Sam Maker');expect(signup.data.role).toBeUndefined();expect(signup.data.status).toBeUndefined();
@@ -254,10 +389,10 @@ test('publishing requirement and emoji choices fit mobile and each page theme',a
     await page.setViewportSize({width,height:1000});
     for(const path of ['/account','/projects.html','/about.html','/terms.html','/privacy.html']){
       await page.goto(path);
-      await expect(page.getByText(/All projects developed under SAC must be published/)).toBeVisible();
+      await expect(page.getByText(/All projects developed under CYGNUS must be published/)).toBeVisible();
       await expect(page.getByRole('link',{name:'club’s official GitHub organization'})).toHaveAttribute('href','https://github.com/SAclub');
       await expect.poll(()=>page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('main > section')].filter(el=>el.getBoundingClientRect().right>innerWidth).map(el=>el.className)})),{message:`Layout at ${path}, ${width}px`}).toEqual({width,scrollWidth:width,overflow:[]});
-      await page.getByText(/All projects developed under SAC must be published/).scrollIntoViewIfNeeded();
+      await page.getByText(/All projects developed under CYGNUS must be published/).scrollIntoViewIfNeeded();
       await page.screenshot({path:info.outputPath(`${path.replaceAll('/','')}-${width}.png`)});
     }
   }
@@ -334,4 +469,107 @@ test('admin can switch event details between public and members only',async({pag
     await expect(guest).toHaveURL(/\/account\?next=/);
     expect(new URL(guest.url()).searchParams.get('next')).toBe('/events.html?event=future-build');
   } finally { await guest.close(); }
+});
+
+for (const width of [390,1440]) test(`team names reveal contact details inside their category at ${width}px`,async({page},info)=>{
+  const state=await mock(page);
+  state.values['team-person-one']=JSON.stringify({name:'Avery Test',group:'hardware',email:'avery@example.test',linkedin:'https://www.linkedin.com/in/avery-test/'});
+  state.values['team-person-two']=JSON.stringify({name:'Robin Test',group:'hardware',email:'',linkedin:''});
+  state.values['team-person-three']=JSON.stringify({name:'Taylor Test',group:'design',email:'taylor@example.test',linkedin:'https://linkedin.com.evil.test/in/taylor'});
+  await page.setViewportSize({width,height:844});
+  await page.goto('/team.html');
+  const trigger=page.getByRole('button',{name:'Meet the Builders',exact:true});
+  await trigger.click();
+  const dialog=page.getByRole('dialog',{name:'The Builders',exact:true});
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button',{name:'Avery Test',exact:true})).toBeVisible();
+  await expect(dialog.getByRole('button',{name:'Taylor Test',exact:true})).toHaveCount(0);
+  await expect(dialog.getByRole('link')).toHaveCount(0);
+  const name=dialog.getByRole('button',{name:'Avery Test',exact:true});
+  await name.focus();await page.keyboard.press('Enter');
+  await expect(name).toHaveAttribute('aria-expanded','true');
+  await expect(dialog.getByRole('link',{name:'avery@example.test',exact:true})).toHaveAttribute('href','mailto:avery%40example.test');
+  const linkedin=dialog.getByRole('link',{name:'linkedin.com/in/avery-test/'});
+  await expect(linkedin).toHaveAttribute('href','https://www.linkedin.com/in/avery-test/');
+  await expect(linkedin).toHaveAttribute('rel','noopener noreferrer');
+  await page.screenshot({path:info.outputPath(`team-contact-${width}.png`)});
+  const box=await dialog.boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width);
+  expect(box.y+box.height).toBeLessThanOrEqual(844);
+  await dialog.getByRole('button',{name:'Robin Test',exact:true}).click();
+  await expect(name).toHaveAttribute('aria-expanded','false');
+  await expect(dialog.getByText('Contact details will be added soon.')).toBeVisible();
+  await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();await expect(trigger).toBeFocused();
+  await page.getByRole('button',{name:'Meet the Shapers',exact:true}).click();
+  await page.getByRole('button',{name:'Taylor Test',exact:true}).click();
+  await expect(page.locator('#team-directory').getByRole('link')).toHaveCount(1);
+  await page.getByRole('button',{name:'Close team',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Meet the Shapers',exact:true})).toBeFocused();
+  await page.getByRole('button',{name:'Meet the Thinkers',exact:true}).click();
+  await expect(page.getByText('The Thinkers lineup will appear here soon.')).toBeVisible();
+  await page.mouse.click(2,2);await expect(page.locator('#team-directory')).not.toBeVisible();
+});
+
+test('admin can publish, edit, move and remove public team people',async({page},info)=>{
+  const state=await mock(page,{signedIn:true});
+  state.values.unrelated_setting='keep me';
+  await page.goto('/admin');
+  await page.getByRole('button',{name:'Team',exact:true}).click();
+  await page.getByRole('button',{name:'Add person',exact:true}).click();
+  await page.getByLabel('Full name',{exact:true}).fill('Avery Test');
+  await page.getByLabel('Public email (optional)',{exact:true}).fill('avery@example.test');
+  await page.getByLabel('LinkedIn profile URL (optional)',{exact:true}).fill('https://linkedin.com.evil.test/in/avery');
+  await page.getByRole('button',{name:'Publish person',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('Enter a LinkedIn profile link');
+  await page.getByLabel('LinkedIn profile URL (optional)',{exact:true}).fill('in.linkedin.com/in/avery-test/?utm_source=share');
+  const preview=page.getByRole('link',{name:'Open LinkedIn profile'});
+  await expect(preview).toHaveAttribute('href','https://www.linkedin.com/in/avery-test/');
+  await page.context().route('https://www.linkedin.com/in/avery-test/',route=>route.fulfill({contentType:'text/html',body:'<title>LinkedIn test destination</title>'}));
+  const opened=page.waitForEvent('popup');
+  await preview.click();
+  const profileTab=await opened;
+  await expect(profileTab).toHaveURL('https://www.linkedin.com/in/avery-test/');
+  await profileTab.close();
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:info.outputPath('team-editor-mobile.png'),fullPage:true});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.getByRole('button',{name:'Publish person',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('Avery Test is now listed on the Team page.');
+  const id=Object.keys(state.values).find(key=>key.startsWith('team-person-'));
+  expect(JSON.parse(state.values[id]).group).toBe('hardware');
+  expect(JSON.parse(state.values[id]).linkedin).toBe('https://www.linkedin.com/in/avery-test/');
+  await page.goto('/team.html');await page.getByRole('button',{name:'Meet the Builders',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Avery Test',exact:true})).toBeVisible();
+  await page.goto('/admin');await page.getByRole('button',{name:'Team',exact:true}).click();
+  await page.getByRole('button',{name:'Edit',exact:true}).click();
+  await page.getByLabel('Team category',{exact:true}).selectOption('design');
+  await page.getByLabel('Public email (optional)',{exact:true}).fill('design@example.test');
+  await page.getByRole('button',{name:'Save person',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('Avery Test is now listed on the Team page.');
+  await page.goto('/team.html');await page.getByRole('button',{name:'Meet the Builders',exact:true}).click();
+  await expect(page.getByText('The Builders lineup will appear here soon.')).toBeVisible();
+  await page.getByRole('button',{name:'Close team',exact:true}).click();
+  await page.getByRole('button',{name:'Meet the Shapers',exact:true}).click();
+  await page.getByRole('button',{name:'Avery Test',exact:true}).click();
+  await expect(page.getByRole('link',{name:'design@example.test',exact:true})).toBeVisible();
+  await page.goto('/admin');await page.getByRole('button',{name:'Team',exact:true}).click();
+  await page.getByRole('button',{name:'Edit',exact:true}).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Remove person',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('Person removed from the Team page.');
+  expect(state.values[id]).toBeUndefined();expect(state.values.unrelated_setting).toBe('keep me');
+});
+
+test('team popup reports a load failure and can retry without reopening',async({page})=>{
+  await mock(page);let attempts=0;
+  await page.route('**/rest/v1/site_content?*',route=>{
+    const url=new URL(route.request().url());
+    if(!url.searchParams.get('id')?.startsWith('like.team-person-'))return route.fallback();
+    attempts++;
+    return route.fulfill({status:attempts===1?403:200,contentType:'application/json',body:JSON.stringify(attempts===1?{message:'Unavailable'}:[])});
+  });
+  await page.goto('/team.html');await page.getByRole('button',{name:'Meet the Connectors',exact:true}).click();
+  await expect(page.getByText('The team list couldn’t load. Please try again.')).toBeVisible();
+  await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await expect(page.getByText('The Connectors lineup will appear here soon.')).toBeVisible();
 });

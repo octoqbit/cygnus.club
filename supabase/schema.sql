@@ -17,7 +17,7 @@ create table public.profiles (
   created_at timestamptz not null default now()
 );
 create table if not exists public.member_id_counters (
-  department_code text primary key check (department_code in ('EC','ME','CS','EE','OT')),
+  department_code text primary key check (department_code in ('EC','ME','CS','EE','CE','BT','AI','RB','OT')),
   last_number bigint not null check (last_number > 0)
 );
 alter table public.member_id_counters enable row level security;
@@ -34,6 +34,10 @@ returns text language sql immutable set search_path = '' as $$
     when 'computerscienceengineering' then 'CS' when 'computerscienceandengineering' then 'CS'
     when 'ee' then 'EE' when 'eee' then 'EE' when 'electrical' then 'EE'
     when 'electricalengineering' then 'EE' when 'electricalandelectronicsengineering' then 'EE'
+    when 'civil' then 'CE' when 'ce' then 'CE' when 'civilengineering' then 'CE'
+    when 'biotech' then 'BT' when 'biotechnology' then 'BT' when 'bt' then 'BT'
+    when 'aiml' then 'AI' when 'artificialintelligence' then 'AI' when 'ai' then 'AI'
+    when 'robotics' then 'RB' when 'rb' then 'RB'
     else 'OT'
   end;
 $$;
@@ -51,7 +55,7 @@ begin
       on conflict(department_code) do update
       set last_number=public.member_id_counters.last_number+1
       returning last_number into next_number;
-    candidate := 'SAC-' || code || '-' || lpad(next_number::text,greatest(3,length(next_number::text)),'0');
+    candidate := 'CYG-' || code || '-' || lpad(next_number::text,greatest(3,length(next_number::text)),'0');
     if not exists(select 1 from public.profiles where member_id=candidate) then return candidate; end if;
   end loop;
 end;
@@ -89,7 +93,7 @@ begin
     left(coalesce(new.raw_user_meta_data->>'department',''),100), left(coalesce(new.raw_user_meta_data->>'study_year',''),20),
     case when jsonb_typeof(new.raw_user_meta_data->'interests')='array' then array(select jsonb_array_elements_text(new.raw_user_meta_data->'interests')) else '{}' end,
     left(coalesce(new.raw_user_meta_data->>'motivation',''),4000),
-    case when length(trim(coalesce(new.raw_user_meta_data->>'motivation',''))) > 0 then now() end);
+    case when length(trim(coalesce(new.raw_user_meta_data->>'motivation',''))) > 0 and new.email_confirmed_at is not null then now() end);
   return new;
 end; $$;
 revoke execute on function public.handle_new_user() from public,anon,authenticated;
@@ -108,6 +112,7 @@ returns void language plpgsql security definer set search_path = '' as $$
 declare applicant public.profiles%rowtype;
 begin
   if auth.uid() is null then raise exception 'Sign in first'; end if;
+  if not public.is_email_confirmed() then raise exception 'Confirm your email before submitting an application'; end if;
   select * into applicant from public.profiles where id=auth.uid() for update;
   if not found or applicant.status<>'pending' or applicant.submitted_at is not null then raise exception 'An application has already been submitted'; end if;
   if applicant.pronouns is not null and member_pronouns is not null and applicant.pronouns<>member_pronouns then raise exception 'Pronouns cannot be changed after selection'; end if;
@@ -125,14 +130,40 @@ grant execute on function public.save_profile(text,text),public.submit_applicati
 
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
 
+create or replace function public.handle_user_update() returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if old.email_confirmed_at is null and new.email_confirmed_at is not null then
+    update public.profiles set submitted_at = now()
+    where id = new.id and status = 'pending' and submitted_at is null
+      and length(trim(coalesce(motivation,''))) > 0;
+  end if;
+  return new;
+end; $$;
+revoke execute on function public.handle_user_update() from public,anon,authenticated;
+
+drop trigger if exists on_auth_user_updated on auth.users;
+create trigger on_auth_user_updated after update on auth.users for each row execute procedure public.handle_user_update();
+
+create function public.is_email_confirmed()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from auth.users
+    where id = auth.uid() and email_confirmed_at is not null
+  );
+$$;
+revoke execute on function public.is_email_confirmed() from public,anon;
+grant execute on function public.is_email_confirmed() to authenticated;
+
 create function public.is_admin() returns boolean language sql stable security definer set search_path = '' as $$
-  select exists(select 1 from public.profiles where id = auth.uid() and role = 'admin' and status = 'approved');
+  select public.is_email_confirmed()
+    and exists(select 1 from public.profiles where id = auth.uid() and role = 'admin' and status = 'approved');
 $$;
 create function public.is_approved() returns boolean language sql stable security definer set search_path = '' as $$
-  select exists(select 1 from public.profiles where id = auth.uid() and status = 'approved');
+  select public.is_email_confirmed()
+    and exists(select 1 from public.profiles where id = auth.uid() and status = 'approved');
 $$;
 alter table public.profiles enable row level security;
-create policy profile_read on public.profiles for select to authenticated using (id = auth.uid() or public.is_admin());
+create policy profile_read on public.profiles for select to authenticated using (public.is_email_confirmed() and (id = auth.uid() or public.is_admin()));
 -- Deliberately no client INSERT/UPDATE policies: privileged fields are RPC-only.
 
 create or replace function public.review_member(target uuid, decision text)
@@ -250,8 +281,8 @@ begin
   if new.kind <> 'project' then return new; end if;
   select coalesce(jsonb_object_agg(key,value),'{}'::jsonb) into preview
   from jsonb_each(new.data)
-  where key in ('category','subtitle','status','homeProject','heroFeatured','imageCaption');
-  private_data := new.data - array['category','subtitle','status','homeProject','heroFeatured','imageCaption'];
+  where key in ('category','subtitle','status','homeProject','heroFeatured','imageCaption','projectUrl');
+  private_data := new.data - array['category','subtitle','status','homeProject','heroFeatured','imageCaption','projectUrl'];
   if private_data <> '{}'::jsonb then
     insert into public.content_details(content_id,data) values(new.id,private_data)
     on conflict(content_id) do update
@@ -275,11 +306,35 @@ drop policy if exists details_read on public.content_details;
 create policy details_read on public.content_details for select to anon,authenticated
 using (
   public.is_admin() or exists (
-    select 1 from public.content
-    where id=content_id and published and (
-      public.is_approved() or (kind='event' and data->>'access'='public')
+    select 1 from public.content c
+    where c.id = content_details.content_id and c.published and (
+      public.is_approved() or (c.kind = 'event' and c.data->>'access' = 'public')
     )
   )
 );
 grant select on public.content_details to anon;
 commit;
+
+-- Apply to an existing project to enable Admin → Memories and the homepage gallery.
+create table if not exists public.memories (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (length(trim(title)) between 1 and 120),
+  caption text not null default '' check (length(caption) <= 1000),
+  image text not null check (length(trim(image)) > 0),
+  image_alt text not null check (length(trim(image_alt)) between 1 and 500),
+  taken_on date,
+  category text not null default 'Team moments' check (category in ('Workshops','Build sessions','Campus events','Team moments')),
+  sort_order integer not null default 0,
+  published boolean not null default false,
+  created_at timestamptz not null default now()
+);
+alter table public.memories enable row level security;
+drop policy if exists memories_read on public.memories;
+create policy memories_read on public.memories for select to anon,authenticated
+using (published or public.is_admin());
+drop policy if exists memories_manage on public.memories;
+create policy memories_manage on public.memories for all to authenticated
+using (public.is_admin()) with check (public.is_admin());
+revoke all on public.memories from anon,authenticated;
+grant select on public.memories to anon,authenticated;
+grant insert,update,delete on public.memories to authenticated;

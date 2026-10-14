@@ -4,7 +4,7 @@ begin;
 lock table public.profiles in share row exclusive mode;
 
 create table if not exists public.member_id_counters (
-  department_code text primary key check (department_code in ('EC','ME','CS','EE','OT')),
+  department_code text primary key check (department_code in ('EC','ME','CS','EE','CE','BT','AI','RB','OT')),
   last_number bigint not null check (last_number > 0)
 );
 alter table public.member_id_counters enable row level security;
@@ -21,6 +21,10 @@ returns text language sql immutable set search_path = '' as $$
     when 'computerscienceengineering' then 'CS' when 'computerscienceandengineering' then 'CS'
     when 'ee' then 'EE' when 'eee' then 'EE' when 'electrical' then 'EE'
     when 'electricalengineering' then 'EE' when 'electricalandelectronicsengineering' then 'EE'
+    when 'civil' then 'CE' when 'ce' then 'CE' when 'civilengineering' then 'CE'
+    when 'biotech' then 'BT' when 'biotechnology' then 'BT' when 'bt' then 'BT'
+    when 'aiml' then 'AI' when 'artificialintelligence' then 'AI' when 'ai' then 'AI'
+    when 'robotics' then 'RB' when 'rb' then 'RB'
     else 'OT'
   end;
 $$;
@@ -69,7 +73,7 @@ grant execute on function public.review_member(uuid,text) to authenticated;
 insert into public.member_id_counters(department_code,last_number)
 select split_part(member_id,'-',2),max(split_part(member_id,'-',3)::bigint)
 from public.profiles
-where member_id ~ '^SAC-(EC|ME|CS|EE|OT)-[0-9]{3,}$'
+where member_id ~ '^SAC-(EC|ME|CS|EE|CE|BT|AI|RB|OT)-[0-9]{3,}$'
 group by split_part(member_id,'-',2)
 having max(split_part(member_id,'-',3)::bigint)>0
 on conflict(department_code) do update
@@ -81,7 +85,7 @@ declare applicant record;
 begin
   for applicant in
     select id,department from public.profiles
-    where (member_id is not null and member_id !~ '^SAC-(EC|ME|CS|EE|OT)-[0-9]{3,}$')
+    where (member_id is not null and member_id !~ '^SAC-(EC|ME|CS|EE|CE|BT|AI|RB|OT)-[0-9]{3,}$')
        or (member_id is null and role='member' and status='approved')
     order by created_at,id
   loop

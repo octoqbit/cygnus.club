@@ -1,4 +1,4 @@
-// Existing SAC event listings. Dates are all-day because event times were not supplied.
+// Existing CYGNUS event listings. Dates are all-day because event times were not supplied.
 export const events = [
   { id: 'genesis', title: 'AI Hackathon: Genesis 2026', shortTitle: 'AI HACKATHON', subtitle: 'GENESIS 2026', startDate: '2026-12-05', endDate: '2026-12-07', date: 'Dec 05–07, 2026', location: 'Tech Innovation Hub', image: 'hackathon', description: '48 hours to build the next generation of autonomous intelligence.', tags: ['AI', 'Software', 'Hackathon'], accentColor: '#00e5ff', prizePool: '3,00,000', symbol: '01' },
   { id: 'robowars', title: 'RoboWars: Steel & Sparks', shortTitle: 'ROBOWARS', subtitle: 'STEEL & SPARKS', startDate: '2026-11-15', endDate: '2026-11-15', date: 'Nov 15, 2026', location: 'Main Arena', image: 'robotics', description: 'The ultimate combat robotics competition. Build, fight, survive. 30+ teams competing for glory.', tags: ['Hardware', 'Combat', 'Robotics'], accentColor: '#ffc107', prizePool: '6,00,000', symbol: '02' },
@@ -30,7 +30,7 @@ export function calendarFile(event, now = new Date()) {
   const end = new Date(`${event.endDate}T00:00:00Z`); end.setUTCDate(end.getUTCDate() + 1);
   const compact = date => date.replaceAll('-', '');
   const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SAC//Event Board//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', `UID:${event.id}-${event.startDate}@sac-events`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${compact(event.startDate)}`, `DTEND;VALUE=DATE:${compact(end.toISOString().slice(0, 10))}`, `SUMMARY:${escape(event.title)}`, `LOCATION:${escape(event.location)}`, `DESCRIPTION:${escape(event.description)}`, 'END:VEVENT', 'END:VCALENDAR'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CYGNUS//Event Board//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', `UID:${event.id}-${event.startDate}@sac-events`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${compact(event.startDate)}`, `DTEND;VALUE=DATE:${compact(end.toISOString().slice(0, 10))}`, `SUMMARY:${escape(event.title)}`, `LOCATION:${escape(event.location)}`, `DESCRIPTION:${escape(event.description)}`, 'END:VEVENT', 'END:VCALENDAR'];
   // Fold long lines to the iCalendar 75-octet limit without breaking UTF-8 characters.
   return lines.map(line => {
     let output = '', width = 0;

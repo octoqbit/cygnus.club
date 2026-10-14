@@ -1,4 +1,4 @@
-# Connect the SAC admin and member portal
+# Connect the CYGNUS admin and member portal
 
 The website uses Supabase Auth, PostgreSQL row-level security, and Storage. No admin password or service-role key belongs in frontend code. `/admin` and `/account` work locally through Vite and on Vercel.
 
@@ -26,7 +26,7 @@ In Authentication settings:
 - Add redirect URLs for `https://YOUR_SITE/account`, `https://YOUR_SITE/account?mode=reset`, and local equivalents such as `http://localhost:5173/account` and `http://localhost:5173/account?mode=reset`. If using member return links, allow the account URL's query-string variants too.
 - Configure custom SMTP for production confirmation and password-reset emails; the default development mail service is limited. Set appropriate auth rate limits and enable Supabase's bot protection if the public application form is abused.
 
-Applicants choose a password, their fixed pronouns (He/Him or She/Her), and one of eight editable tech emojis. Admins retain the laptop-person emoji. The existing-project upgrade moves the old `boy` and `girl` choices to a separate `pronouns` column before replacing member avatars. Pronouns cannot be changed after selection; the database enforces this rule. Their **email is their login ID**. A department-based membership number, such as `SAC-EC-001`, is assigned when an admin approves them. Codes are `EC` (Electronics and Communication), `ME` (Mechanical), `CS` (Computer Science), `EE` (Electrical), and `OT` (Other). Each department starts at `001`, then `002`, and so on. Numbers expand beyond three digits after `999`. Reapproval keeps the same ID. Passwords are managed by Supabase Auth; administrators cannot view passwords.
+Applicants choose a password, their fixed pronouns (He/Him or She/Her), and one of eight editable tech emojis. Admins retain the laptop-person emoji. The existing-project upgrade moves the old `boy` and `girl` choices to a separate `pronouns` column before replacing member avatars. Pronouns cannot be changed after selection; the database enforces this rule. Their **email is their login ID**. A department-based membership number, such as `CYG-EC-001`, is assigned when an admin approves them. Codes are `EC` (Electronics and Communication), `ME` (Mechanical), `CS` (Computer Science), `EE` (Electrical), and `OT` (Other). Each department starts at `001`, then `002`, and so on. Numbers expand beyond three digits after `999`. Reapproval keeps the same ID. Passwords are managed by Supabase Auth; administrators cannot view passwords.
 
 Approval status is visible in the account and refreshes every 30 seconds. This implementation does not send approval emails. Email confirmation and password reset messages are sent by Supabase.
 
@@ -55,7 +55,7 @@ A member can connect Google from their signed-in account. Google-only newcomers 
 ## Daily use
 
 - **Events / Projects:** create, edit, upload images (JPG, PNG, WebP, GIF, up to 5 MB), save drafts, publish, order, and delete. Full details are stored in a separate protected table.
-- **Visibility:** select which events appear in Beyond Circuits and Experience and which projects appear on the homepage. Existing slider motion and page designs are preserved.
+- **Visibility:** select which events appear in the homepage event slides and which projects appear on the homepage. Existing slider motion and page designs are preserved.
 - **Website content:** edit existing text, including banner words, without altering banner artwork. Text is plain text and preserves existing formatting. Save changes, then refresh the public page.
 - **Members:** inspect applications, approve and assign a member number, reject, or suspend. Suspension immediately blocks protected data requests even if the user remains signed in.
 - **Registrations:** approved members can register once for published, open, non-past events; members can cancel from their account. Admins see the registration list. Deleting an event also deletes its registrations, after a confirmation dialog.
@@ -76,14 +76,10 @@ Database tests execute the actual schema, policies, and RPCs in PostgreSQL via P
 
 References: [Supabase Auth](https://supabase.com/docs/guides/auth), [row-level security](https://supabase.com/docs/guides/database/postgres/row-level-security), [identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking).
 
-## Upgrade existing projects to department-based IDs
+## Existing database: CYGNUS rename
 
-If you already ran the original schema, run `migrations/20261004_department_member_ids.sql` in the Supabase SQL editor. Do not rerun `schema.sql`. The migration converts old assigned membership numbers, assigns IDs to approved members without one, and preserves existing department IDs. It is safe to rerun. It does not change passwords, user UUIDs, registrations, or approval status. Blank or unrecognized departments use `OT`; review the department values before applying if you need a specific code. New applications use the same department dropdown in both signup flows.
+Run [20261013_cygnus_rebrand.sql](migrations/20261013_cygnus_rebrand.sql) for the rename, or [upgrade-existing.sql](upgrade-existing.sql) for the combined upgrade. Issued department IDs retain their department and number: `SAC-EC-001` becomes `CYG-EC-001`. New IDs use `CYG-<department>-<number>`. Counters continue independently per department, and reapproval keeps the same ID. The migration also updates club-authored saved text while preserving URLs, image paths, private access, accounts, and registrations. It stops transactionally if an old and new ID would collide. Do not rerun the initial schema or the historical department migration against the renamed project.
 
-## October 2026 profile and project upgrade
+## Homepage memories
 
-For an existing database, follow [UPGRADE.md](UPGRADE.md) and run `upgrade-existing.sql` once in the SQL editor. This combines department IDs, fixed pronouns with editable emojis, and member-only project briefs in one transaction. Do not rerun the fresh-install schema or seed on an existing site.
-
-## Member-only project details
-
-For a database that is already set up, run [migrations/20261006_project_member_access.sql](migrations/20261006_project_member_access.sql) before deploying the updated frontend. It moves existing project briefs and repository links out of public `content.data` into protected `content_details.data`, preserves notes and edits, and applies the same separation to future writes. The combined upgrade includes this migration. Public project listings, introductions, and artwork remain available to everyone; full details require approved membership.
+Apply [20261013_club_memories.sql](migrations/20261013_club_memories.sql) on an existing database, or use the combined upgrade. **Admin → Memories** controls photos, captions, dates, categories, display order, and publishing. Anonymous visitors and members can read published entries only; approved administrators can create, update, delete, and read drafts. The existing `content-images` upload bucket is reused. No photos are seeded.

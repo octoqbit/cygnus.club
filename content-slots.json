@@ -4,9 +4,9 @@
     "selector": "[data-cms=\"home-001\"]",
     "part": 0,
     "group": "Home · Welcome",
-    "label": "SENSING & AUTOMATION CLUB",
+    "label": "CYGNUS",
     "type": "text",
-    "default": "SENSING & AUTOMATION CLUB"
+    "default": "CYGNUS"
   },
   {
     "id": "home-002-0",
@@ -288,85 +288,67 @@
     "default": "Events for curious minds"
   },
   {
-    "id": "home-031-0",
-    "selector": "[data-cms=\"home-031\"]",
+    "id": "home-memory-01-0",
+    "selector": "[data-cms=\"home-memory-01\"]",
     "part": 0,
-    "group": "Home · Experience",
-    "label": "02 / LEARN BY MAKING",
+    "group": "Home · Memories",
+    "label": "02 / LIFE AT CYGNUS",
     "type": "text",
-    "default": "02 / LEARN BY MAKING"
+    "default": "02 / LIFE AT CYGNUS"
   },
   {
-    "id": "home-032-0",
-    "selector": "[data-cms=\"home-032\"]",
+    "id": "home-memory-02-0",
+    "selector": "[data-cms=\"home-memory-02\"]",
     "part": 0,
-    "group": "Home · Experience",
-    "label": "PROGRESS > PERFECTION",
+    "group": "Home · Memories",
+    "label": "OFF THE CLOCK. IN THE FRAME.",
     "type": "text",
-    "default": "PROGRESS > PERFECTION"
+    "default": "OFF THE CLOCK. IN THE FRAME."
   },
   {
-    "id": "home-033-0",
-    "selector": "[data-cms=\"home-033\"]",
+    "id": "home-memory-heading-0",
+    "selector": "[data-cms=\"home-memory-heading\"]",
     "part": 0,
-    "group": "Home · Experience",
-    "label": "EXPERIENCE",
+    "group": "Home · Memories",
+    "label": "Moments at",
     "type": "text",
-    "default": "EXPERIENCE"
+    "default": "Moments at"
   },
   {
-    "id": "home-034-0",
-    "selector": "[data-cms=\"home-034\"]",
+    "id": "home-memory-04-0",
+    "selector": "[data-cms=\"home-memory-04\"]",
     "part": 0,
-    "group": "Home · Experience",
-    "label": "Learn. Build. Take part.",
+    "group": "Home · Memories",
+    "label": "CYGNUS.",
     "type": "text",
-    "default": "Learn. Build. Take part."
+    "default": "CYGNUS."
   },
   {
-    "id": "home-035-0",
-    "selector": "[data-cms=\"home-035\"]",
+    "id": "home-memory-05-0",
+    "selector": "[data-cms=\"home-memory-05\"]",
     "part": 0,
-    "group": "Home · Experience",
-    "label": "Meet your next challenge",
+    "group": "Home · Memories",
+    "label": "THE THINGS WE BUILD. THE MOMENTS WE KEEP.",
     "type": "text",
-    "default": "Meet your next challenge"
+    "default": "THE THINGS WE BUILD. THE MOMENTS WE KEEP."
   },
   {
-    "id": "home-036-0",
-    "selector": "[data-cms=\"home-036\"]",
+    "id": "home-memory-06-0",
+    "selector": "[data-cms=\"home-memory-06\"]",
     "part": 0,
-    "group": "Home · Experience",
-    "label": "FIG. 02 / CURIOSITY, ASSEMBLED",
+    "group": "Home · Memories",
+    "label": "Behind every project, there’s a story. A few faces, a lot of trying, and some moments worth keeping.",
     "type": "text",
-    "default": "FIG. 02 / CURIOSITY, ASSEMBLED"
+    "default": "Behind every project, there’s a story. A few faces, a lot of trying, and some moments worth keeping."
   },
   {
-    "id": "home-037-0",
-    "selector": "[data-cms=\"home-037\"]",
+    "id": "home-memory-07-0",
+    "selector": "[data-cms=\"home-memory-07\"]",
     "part": 0,
-    "group": "Home · Experience",
-    "label": "Unique Approach",
+    "group": "Home · Memories",
+    "label": "MADE TOGETHER. REMEMBERED TOGETHER.",
     "type": "text",
-    "default": "Unique Approach"
-  },
-  {
-    "id": "home-038-0",
-    "selector": "[data-cms=\"home-038\"]",
-    "part": 0,
-    "group": "Home · Experience",
-    "label": "Beyond Components",
-    "type": "text",
-    "default": "Beyond Components"
-  },
-  {
-    "id": "home-039-0",
-    "selector": "[data-cms=\"home-039\"]",
-    "part": 0,
-    "group": "Home · Experience",
-    "label": "We do the impossible. In robotics, it takes an entire ecosystem to transform ide",
-    "type": "text",
-    "default": "We do the impossible. In robotics, it takes an entire ecosystem to transform ideas into industry leaders. With strategic hardware funding, software support, and top-tier tech partnerships - we set you up for unparalleled growth."
+    "default": "MADE TOGETHER. REMEMBERED TOGETHER."
   },
   {
     "id": "home-040-0",
@@ -490,18 +472,18 @@
     "selector": "[data-cms=\"home-052\"]",
     "part": 0,
     "group": "Home · FAQ",
-    "label": "Who can join the Sensing and Automation Club (SAC)?",
+    "label": "Who can join CYGNUS?",
     "type": "text",
-    "default": "Who can join the Sensing and Automation Club (SAC)?"
+    "default": "Who can join CYGNUS?"
   },
   {
     "id": "home-053-0",
     "selector": "[data-cms=\"home-053\"]",
     "part": 0,
     "group": "Home · FAQ",
-    "label": "Any student with a passion for robotics, AI, or building hardware can join SAC! ",
+    "label": "Any student with a passion for robotics, AI, or building hardware can join CYGNUS! ",
     "type": "text",
-    "default": "Any student with a passion for robotics, AI, or building hardware can join SAC! We welcome all skill levels, from beginners looking to learn, to advanced developers ready to lead a project."
+    "default": "Any student with a passion for robotics, AI, or building hardware can join CYGNUS! We welcome all skill levels, from beginners looking to learn, to advanced developers ready to lead a project."
   },
   {
     "id": "home-054-0",
@@ -517,9 +499,9 @@
     "selector": "[data-cms=\"home-055\"]",
     "part": 0,
     "group": "Home · FAQ",
-    "label": "Not at all. SAC provides mentorship, workshops, and team-based learning. As long",
+    "label": "Not at all. CYGNUS provides mentorship, workshops, and team-based learning. As long",
     "type": "text",
-    "default": "Not at all. SAC provides mentorship, workshops, and team-based learning. As long as you have the curiosity and dedication to learn, you will quickly pick up the skills you need."
+    "default": "Not at all. CYGNUS provides mentorship, workshops, and team-based learning. As long as you have the curiosity and dedication to learn, you will quickly pick up the skills you need."
   },
   {
     "id": "home-056-0",
@@ -580,9 +562,9 @@
     "selector": "[data-cms=\"projects-001\"]",
     "part": 0,
     "group": "Projects · Page",
-    "label": "SAC / PROJECT LAB",
+    "label": "CYGNUS / PROJECT LAB",
     "type": "text",
-    "default": "SAC / PROJECT LAB"
+    "default": "CYGNUS / PROJECT LAB"
   },
   {
     "id": "projects-002-0",
@@ -911,9 +893,9 @@
   {
     "id": "events-001",
     "group": "Events · Page",
-    "label": "SAC / LIVE TRANSMISSIONS & ARCHIVES",
+    "label": "CYGNUS / LIVE TRANSMISSIONS & ARCHIVES",
     "type": "text",
-    "default": "SAC / LIVE TRANSMISSIONS & ARCHIVES"
+    "default": "CYGNUS / LIVE TRANSMISSIONS & ARCHIVES"
   },
   {
     "id": "events-002",
@@ -1205,9 +1187,9 @@
   {
     "id": "events-043",
     "group": "Events · Page",
-    "label": "SAC / SENSING & AUTOMATION CLUB",
+    "label": "CYGNUS",
     "type": "text",
-    "default": "SAC / SENSING & AUTOMATION CLUB"
+    "default": "CYGNUS"
   },
   {
     "id": "events-044",
@@ -1226,8 +1208,8 @@
   {
     "id": "events-046",
     "group": "Events · Page",
-    "label": "© 2026 SAC",
+    "label": "© 2026 CYGNUS",
     "type": "text",
-    "default": "© 2026 SAC"
+    "default": "© 2026 CYGNUS"
   }
 ]

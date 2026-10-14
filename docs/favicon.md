@@ -1,4 +1,8 @@
-# Circular favicon
+# Favicon
+
+Current CYGNUS icon: `public/cygnus-favicon.svg`, using the extracted symbol on a light circular background. See [CYGNUS branding](cygnus-branding.md). All pages reference this new filename to avoid cached old icons.
+
+## Historical circular favicon
 
 Source: the user's supplied SAC logo (`public/favicon.png`).
 Asset: `public/favicon-round.png`, 64 × 64 PNG with transparent corners.

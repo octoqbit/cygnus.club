@@ -334,9 +334,8 @@ body {
 
 @font-face {
     font-family: 'TGHEAD Stencil';
-    src: local('TGHEAD Stencil'), local('TGHEAD-Stencil'), local('TGHEAD Stencil Regular'), local('TGHEAD'),
-        url('./TGHEAD-Stencil.otf') format('opentype'), url('./TGHEAD-Stencil.ttf') format('truetype'),
-        url('./TGHEAD.otf') format('opentype'), url('./TGHEAD.ttf') format('truetype');
+    src: local('TGHEAD Stencil'), local('TGHEAD-Stencil'), local('TGHEAD Stencil Regular'), local('TGHEAD');
+    font-display: swap;
     font-weight: normal;
     font-style: normal;
 }
@@ -1407,8 +1406,12 @@ body {
     align-items: center;
 }
 
-.footer-social-link:hover {
+a.footer-social-link:hover {
     color: var(--accent-orange);
+}
+
+.footer-social-placeholder {
+    opacity: 0.55;
 }
 
 .footer-bottom {
@@ -1492,7 +1495,7 @@ body {
     }
 
     .logo-x-box {
-        display: none;
+        display: none !important;
         /* Removed the +/x icon on mobile */
     }
 
@@ -1634,11 +1637,32 @@ body {
         align-items: center !important;
         justify-content: center !important;
         gap: 1.5rem !important;
+        padding: 2rem 1rem !important;
+    }
+
+    .footer-col:first-child .cygnus-brand-footer {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0 !important;
+    }
+
+    .footer-col:first-child .cygnus-brand-footer .cygnus-wordmark {
+        display: none !important;
+    }
+
+    .footer-col:first-child .cygnus-brand-footer .cygnus-symbol,
+    .footer-col:first-child img[alt="Institute Logo"] {
+        height: 68px !important;
+        width: auto !important;
+        max-height: 68px !important;
+        object-fit: contain !important;
     }
 
     .footer-col:first-child div {
         width: 1px !important;
-        height: 80px !important;
+        height: 60px !important;
+        flex: 0 0 1px !important;
     }
 
     .footer-bottom {
@@ -2378,20 +2402,36 @@ body {
     .footer-col:first-child {
         grid-column: 1 / -1;
         padding: 1.5rem 1rem !important;
-        gap: 1rem !important;
+        gap: 1.25rem !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
-    .footer-col:first-child img {
-        min-width: 0;
-        max-width: calc(50% - 1rem);
-        height: auto !important;
-        max-height: 90px;
-        object-fit: contain;
+    .footer-col:first-child .cygnus-brand-footer {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0 !important;
+    }
+
+    .footer-col:first-child .cygnus-brand-footer .cygnus-wordmark {
+        display: none !important;
+    }
+
+    .footer-col:first-child .cygnus-brand-footer .cygnus-symbol,
+    .footer-col:first-child img[alt="Institute Logo"] {
+        height: 64px !important;
+        width: auto !important;
+        max-height: 64px !important;
+        max-width: calc(50% - 1.25rem) !important;
+        object-fit: contain !important;
     }
 
     .footer-col:first-child div {
         flex: 0 0 1px;
-        height: 60px !important;
+        width: 1px !important;
+        height: 56px !important;
     }
 
     .footer-col:last-child {
