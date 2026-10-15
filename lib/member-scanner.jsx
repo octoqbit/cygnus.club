@@ -12,6 +12,11 @@ export function MemberScanner() {
   const [result,setResult] = useState(null);
   const [error,setError] = useState('');
   useEffect(() => () => stream?.getTracks().forEach(track=>track.stop()), [stream]);
+  function stopCamera(activeStream=stream) {
+    activeStream?.getTracks().forEach(track=>track.stop());
+    if (videoRef.current) videoRef.current.srcObject=null;
+    setStream(null);
+  }
   async function verify(value) {
     const parsed=parseMemberQR(value);
     if (!parsed) { setResult(null); setError('This is not a CYGNUS member QR code.'); return; }
@@ -24,30 +29,49 @@ export function MemberScanner() {
     } catch (e) { setResult(null); setError(e.message.includes('approved')||e.message.includes('authentic') ? 'Not approved or QR code is not authentic.' : e.message); }
   }
   async function startCamera() {
+    let activeStream=null;
     try {
       setError('');
       const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+      activeStream=next;
       setStream(next);
       await new Promise(resolve=>requestAnimationFrame(resolve));
       const video=videoRef.current;
       if (!video) {
-        next.getTracks().forEach(track=>track.stop());
-        setStream(null);
+        stopCamera(next);
         throw new Error('Camera preview could not be opened. Use Upload QR image instead.');
       }
+      video.srcObject=next;
+      await new Promise((resolve,reject)=>{
+        if (video.videoWidth && video.videoHeight) return resolve();
+        const timer=setTimeout(()=>reject(new Error('Camera did not provide a video frame. Use Upload QR image instead.')),5000);
+        video.onloadedmetadata=()=>{clearTimeout(timer);resolve();};
+      });
+      await video.play();
       const scan=()=> {
         const canvas=canvasRef.current;
         if (!video||!canvas||!next.active) return;
-        if (video.readyState>=2) {
-          canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-          const code=canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,canvas.width,canvas.height);
-          const decoded=jsQR(code.data,code.width,code.height);
-          if (decoded) { next.getTracks().forEach(track=>track.stop()); setStream(null); verify(decoded.data); return; }
+        try {
+          if (video.readyState>=2 && video.videoWidth>0 && video.videoHeight>0) {
+            canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+            const context=canvas.getContext('2d',{willReadFrequently:true});
+            context.drawImage(video,0,0,canvas.width,canvas.height);
+            const code=context.getImageData(0,0,canvas.width,canvas.height);
+            const decoded=jsQR(code.data,code.width,code.height,{inversionAttempts:'attemptBoth'});
+            if (decoded) { stopCamera(next); verify(decoded.data); return; }
+          }
+        } catch (e) {
+          stopCamera(next);
+          setError(`Camera scanning failed: ${e.message}`);
+          return;
         }
         requestAnimationFrame(scan);
       };
-      video.srcObject=next; await video.play(); requestAnimationFrame(scan);
-    } catch (e) { setError(e.name==='NotAllowedError'?'Camera permission was denied. Use Upload QR image instead.':e.message); }
+      requestAnimationFrame(scan);
+    } catch (e) {
+      stopCamera(activeStream);
+      setError(e.name==='NotAllowedError'?'Camera permission was denied. Use Upload QR image instead.':e.message);
+    }
   }
   function upload(event) {
     const file=event.target.files?.[0]; if (!file) return;
@@ -60,7 +84,7 @@ export function MemberScanner() {
     <p className="small-note">Administrators and approved core members can verify QR codes. Administrators do not need core-member status. Verification checks the live database record, not just the printed QR text.</p>
     <video ref={videoRef} className={stream?'scanner-video':'scanner-video hidden'} muted playsInline aria-label="QR scanner camera"/>
     <canvas ref={canvasRef} className="scanner-canvas" aria-hidden="true"/>
-    <div className="button-row"><button className="primary" onClick={startCamera} disabled={Boolean(stream)}><Camera size={15}/> {stream?'Scanning…':'Open camera'}</button><label className="secondary"><Upload size={15}/> Upload QR image<input type="file" accept="image/*" onChange={upload}/></label></div>
+    <div className="button-row"><button className="primary" onClick={startCamera} disabled={Boolean(stream)}><Camera size={15}/> {stream?'Scanning…':'Open camera'}</button>{stream&&<button className="secondary" onClick={()=>stopCamera()}>Stop camera</button>}<label className="secondary"><Upload size={15}/> Upload QR image<input type="file" accept="image/*" onChange={upload}/></label></div>
     {error&&<p className="notice error" role="alert">{error}</p>}
     {result&&<div className="scanner-result"><strong><ShieldCheck size={16}/> Authentic approved member</strong><dl><div><dt>Name</dt><dd>{result.name}</dd></div><div><dt>Member ID</dt><dd>{result.member_id}</dd></div><div><dt>Department</dt><dd>{result.department||'Not provided'}</dd></div><div><dt>Mobile</dt><dd>{formatMobile(result.mobile_number)||'Not provided'}</dd></div></dl></div>}
   </section>;
