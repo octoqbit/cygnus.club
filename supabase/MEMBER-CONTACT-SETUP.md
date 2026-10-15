@@ -9,6 +9,8 @@ This targeted migration assumes the current profiles, pronouns, email-confirmati
 The migration is transactional and safe to rerun. It:
 
 - Adds nullable `public.profiles.mobile_number`, with a constraint accepting only `+91` followed by ten digits. Existing accounts remain intact, with unknown numbers left `NULL`.
+- Adds a database-issued `qr_token` and the protected `verify_member_qr` RPC. QR images no longer trust editable text; verification checks the live approved profile.
+- Adds the `core_member` role. Only administrators can grant or remove it through the admin panel. Core members can verify every approved member QR code; ordinary club members cannot.
 - Adds `normalize_mobile_number(text)` for database-side validation and normalization. Numbers such as `9876543210` and `+91 98765 43210` are stored as `+919876543210`.
 - Updates the existing signup trigger function `handle_new_user()` to copy `mobile_number` from signup metadata and require a number for new applications. OAuth accounts can still be created without one and complete their application afterward.
 - Replaces `submit_application` with an eight-argument version adding `contact_number`. A valid number is required when submitting an application.

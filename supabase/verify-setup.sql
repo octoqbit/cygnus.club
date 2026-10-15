@@ -4,12 +4,13 @@ with required_tables(name) as (
   values ('profiles'),('member_id_counters'),('content'),('content_details'),
          ('site_content'),('registrations'),('memories')
 ), required_columns(table_name,column_name) as (
-  values ('profiles','mobile_number'),('profiles','pronouns'),('profiles','member_id'),
+  values ('profiles','mobile_number'),('profiles','qr_token'),('profiles','pronouns'),('profiles','member_id'),
          ('profiles','submitted_at'),('content_details','data'),('memories','sort_order')
 ), required_functions(signature) as (
   values ('public.is_email_confirmed()'),('public.is_admin()'),('public.is_approved()'),
          ('public.handle_new_user()'),('public.handle_user_update()'),
          ('public.normalize_mobile_number(text)'),('public.allocate_member_id(text)'),
+         ('public.is_core_member()'),('public.set_core_member(uuid,boolean)'),('public.verify_member_qr(text,uuid)'),
          ('public.save_profile(text,text,text)'),
          ('public.submit_application(text,text,text,text,text[],text,text,text)'),
          ('public.review_member(uuid,text)'),('public.save_content(jsonb,text)')

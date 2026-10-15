@@ -2,6 +2,8 @@
 -- Existing mobile numbers are unknown: leave them NULL until members save them.
 begin;
 alter table public.profiles add column if not exists mobile_number text;
+alter table public.profiles add column if not exists qr_token uuid default gen_random_uuid();
+update public.profiles set qr_token=gen_random_uuid() where qr_token is null;
 alter table public.profiles drop constraint if exists profiles_mobile_number_check;
 alter table public.profiles add constraint profiles_mobile_number_check
   check (mobile_number is null or mobile_number ~ '^\+91[0-9]{10}$');
@@ -56,6 +58,36 @@ begin
   end if;
   update public.profiles set mobile_number=case when contact_number is null then mobile_number else public.normalize_mobile_number(contact_number) end,name=trim(display_name),avatar=case when role='admin' then 'technologist' else emoji end where id=auth.uid();
 end; $$;
+
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('member','core_member','admin'));
+create or replace function public.is_core_member() returns boolean language sql stable security definer set search_path = '' as $$
+  select public.is_email_confirmed() and exists(select 1 from public.profiles where id=auth.uid() and role in ('core_member','admin') and status='approved');
+$$;
+revoke execute on function public.is_core_member() from public,anon;
+grant execute on function public.is_core_member() to authenticated;
+create or replace function public.set_core_member(target uuid, enabled boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise exception 'Administrator access required'; end if;
+  if target=auth.uid() then raise exception 'You cannot change your own core status'; end if;
+  update public.profiles set role=case when enabled then 'core_member' else 'member' end
+    where id=target and status='approved' and role in ('member','core_member');
+  if not found then raise exception 'Approved member not found'; end if;
+end; $$;
+revoke execute on function public.set_core_member(uuid,boolean) from public,anon;
+grant execute on function public.set_core_member(uuid,boolean) to authenticated;
+create or replace function public.verify_member_qr(target_member_id text, target_token uuid)
+returns table(name text, member_id text, department text, mobile_number text, status text)
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_core_member() then raise exception 'Core member access required'; end if;
+  return query select p.name,p.member_id,p.department,p.mobile_number,p.status
+    from public.profiles p where p.member_id=verify_member_qr.target_member_id and p.qr_token=verify_member_qr.target_token and p.status='approved';
+  if not found then raise exception 'This QR code is invalid or no longer belongs to an approved member'; end if;
+end; $$;
+revoke execute on function public.verify_member_qr(text,uuid) from public,anon;
+grant execute on function public.verify_member_qr(text,uuid) to authenticated;
 
 create or replace function public.submit_application(display_name text, emoji text, department_name text, year_value text, interest_values text[], reason text, member_pronouns text default null, contact_number text default null)
 returns void language plpgsql security definer set search_path = '' as $$

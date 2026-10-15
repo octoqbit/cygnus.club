@@ -70,6 +70,10 @@ revoke execute on function public.lock_profile_choices() from public,anon,authen
 drop trigger if exists profile_choices_locked on public.profiles;
 create trigger profile_choices_locked before insert or update on public.profiles
 for each row execute function public.lock_profile_choices();
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('member','core_member','admin'));
+alter table public.profiles add column if not exists qr_token uuid default gen_random_uuid();
+update public.profiles set qr_token=gen_random_uuid() where qr_token is null;
 
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path = '' as $$
 declare
@@ -242,7 +246,7 @@ begin
   if decision is null or decision not in ('approved','rejected','suspended') then raise exception 'Invalid decision'; end if;
   if target = auth.uid() then raise exception 'You cannot review your own account'; end if;
   select * into applicant from public.profiles
-    where id=target and role='member' and submitted_at is not null for update;
+    where id=target and role in ('member','core_member') and submitted_at is not null for update;
   if not found then raise exception 'Application not found'; end if;
   update public.profiles set status=decision, reviewed_at=now(),
     member_id=case when decision='approved'
@@ -285,7 +289,7 @@ begin
   for applicant in
     select id,department from public.profiles
     where (member_id is not null and member_id !~ '^CYG-(EC|ME|CS|EE|CE|BT|AI|RB|OT)-[0-9]{3,}$')
-       or (member_id is null and role='member' and status='approved')
+       or (member_id is null and role in ('member','core_member') and status='approved')
     order by created_at,id
   loop
     update public.profiles set member_id=public.allocate_member_id(applicant.department) where id=applicant.id;
@@ -569,6 +573,33 @@ end; $$;
 revoke execute on function public.handle_new_user() from public,anon,authenticated;
 revoke execute on function public.save_profile(text,text,text),public.submit_application(text,text,text,text,text[],text,text,text) from public,anon;
 grant execute on function public.save_profile(text,text,text),public.submit_application(text,text,text,text,text[],text,text,text) to authenticated;
+create or replace function public.is_core_member() returns boolean language sql stable security definer set search_path = '' as $$
+  select public.is_email_confirmed() and exists(select 1 from public.profiles where id=auth.uid() and role in ('core_member','admin') and status='approved');
+$$;
+revoke execute on function public.is_core_member() from public,anon;
+grant execute on function public.is_core_member() to authenticated;
+create or replace function public.set_core_member(target uuid, enabled boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise exception 'Administrator access required'; end if;
+  if target=auth.uid() then raise exception 'You cannot change your own core status'; end if;
+  update public.profiles set role=case when enabled then 'core_member' else 'member' end
+    where id=target and status='approved' and role in ('member','core_member');
+  if not found then raise exception 'Approved member not found'; end if;
+end; $$;
+revoke execute on function public.set_core_member(uuid,boolean) from public,anon;
+grant execute on function public.set_core_member(uuid,boolean) to authenticated;
+create or replace function public.verify_member_qr(target_member_id text, target_token uuid)
+returns table(name text, member_id text, department text, mobile_number text, status text)
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_core_member() then raise exception 'Core member access required'; end if;
+  return query select p.name,p.member_id,p.department,p.mobile_number,p.status
+    from public.profiles p where p.member_id=verify_member_qr.target_member_id and p.qr_token=verify_member_qr.target_token and p.status='approved';
+  if not found then raise exception 'This QR code is invalid or no longer belongs to an approved member'; end if;
+end; $$;
+revoke execute on function public.verify_member_qr(text,uuid) from public,anon;
+grant execute on function public.verify_member_qr(text,uuid) to authenticated;
 -- Existing profile_read RLS keeps contacts visible only to the owner and admins.
 -- No public profile policy, QR table, Storage bucket, or Edge Function is needed.
 notify pgrst, 'reload schema';

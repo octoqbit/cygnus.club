@@ -7,8 +7,8 @@ test.beforeEach(async({page})=>{await page.route('https://fonts.googleapis.com/*
 
 const adminId='00000000-0000-4000-8000-000000000001',memberId='00000000-0000-4000-8000-000000000002',eventId='00000000-0000-4000-8000-000000000003',projectId='00000000-0000-4000-8000-000000000004';
 async function mock(page,{role='admin',signedIn=false,status='approved',empty=false}={}){
-  const profile={id:role==='admin'?adminId:memberId,email:`${role}@example.test`,name:role==='admin'?'Alex Admin':'Jamie Member',avatar:role==='admin'?'technologist':'robot',pronouns:'he/him',role,status,member_id:'CYG-CS-001',mobile_number:'+919876543210',department:'CS',study_year:'2',interests:['Robotics'],motivation:'I want to build robots.',submitted_at:'2026-01-01',created_at:'2026-01-01'};
-  const applicant={...profile,id:'00000000-0000-4000-8000-000000000005',name:'New Maker',email:'maker@example.test',role:'member',status:'pending',member_id:null};
+  const profile={id:role==='admin'?adminId:memberId,email:`${role}@example.test`,name:role==='admin'?'Alex Admin':'Jamie Member',avatar:role==='admin'?'technologist':'robot',pronouns:'he/him',role,status,member_id:'CYG-CS-001',qr_token:'11111111-1111-4111-8111-111111111111',mobile_number:'+919876543210',department:'CS',study_year:'2',interests:['Robotics'],motivation:'I want to build robots.',submitted_at:'2026-01-01',created_at:'2026-01-01'};
+  const applicant={...profile,id:'00000000-0000-4000-8000-000000000005',name:'New Maker',email:'maker@example.test',role:'member',status:'pending',member_id:null,qr_token:'22222222-2222-4222-8222-222222222222'};
   const user={id:profile.id,email:profile.email,email_confirmed_at:'2026-01-01',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-01-01'};
   const session={access_token:'test-access-token',refresh_token:'test-refresh-token',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
   const state={profile,items:empty?[]:[{id:eventId,kind:'event',slug:'future-build',title:'Future Build',summary:'Build something together.',image:'/about-assets/ai_hackathon.jpg',image_alt:'Robotics workshop',tags:['Robotics'],published:true,sort_order:1,data:{shortTitle:'FUTURE BUILD',subtitle:'A HANDS-ON WORKSHOP',startDate:'2099-01-01',endDate:'2099-01-02',location:'The lab',prizePool:'1,000',symbol:'01',accentColor:'#00e5ff',homeBeyond:true,homeExperience:true,registrationOpen:true}},{id:projectId,kind:'project',slug:'atlas',title:'Atlas Rover',summary:'Public rover preview.',image:'/showcase-assets/rover.jpg',image_alt:'Rover',tags:['Robotics'],published:true,sort_order:1,data:{category:'robotics',subtitle:'AUTONOMOUS EXPLORATION',status:'Concept',homeProject:true}}],memories:[],projectDetails:{},values:{},registrations:[],calls:[],applicant,privateBody:'Members-only instructions. Bring your robot kit.'};
@@ -25,6 +25,8 @@ async function mock(page,{role='admin',signedIn=false,status='approved',empty=fa
     else if(path.includes('/auth/v1/recover'))data={};
     else if(path.endsWith('/profiles'))data=url.searchParams.has('id')?state.profile:[state.profile,state.applicant,...(state.extraProfiles||[])];
     else if(path.endsWith('/rpc/review_member')){state.applicant.status=body.decision;state.applicant.member_id='CYG-CS-002';data=null;}
+    else if(path.endsWith('/rpc/set_core_member')){state.profile.role=body.enabled?'core_member':'member';data=null;}
+    else if(path.endsWith('/rpc/verify_member_qr')){data=body.target_member_id===state.profile.member_id&&body.target_token===state.profile.qr_token?{name:state.profile.name,member_id:state.profile.member_id,department:state.profile.department,mobile_number:state.profile.mobile_number,status:'approved'}:null;}
     else if(path.endsWith('/rpc/save_profile')){state.profile.name=body.display_name;state.profile.avatar=body.emoji;state.profile.mobile_number=body.contact_number;data=null;}
     else if(path.endsWith('/rpc/submit_application')){Object.assign(state.profile,{name:body.display_name,mobile_number:body.contact_number,pronouns:body.member_pronouns,submitted_at:new Date().toISOString()});data=null;}
     else if(path.endsWith('/rpc/save_content')){const item={...body.item,id:body.item.id||crypto.randomUUID()};if(item.kind==='project'){const keys=['category','subtitle','status','homeProject','heroFeatured','imageCaption'];state.projectDetails[item.id]=Object.fromEntries(Object.entries(item.data).filter(([key])=>!keys.includes(key)));item.data=Object.fromEntries(Object.entries(item.data).filter(([key])=>keys.includes(key)));}state.items=state.items.filter(i=>i.id!==item.id).concat(item);state.privateBody=body.private_body;data=item.id;}
@@ -666,19 +668,13 @@ test('member mobile numbers and downloaded QR codes use saved details at mobile 
   const state=await mock(page,{role:'member',signedIn:true});
   await page.setViewportSize({width:390,height:844});await page.goto('/account');
   await expect(page.getByLabel('Mobile number',{exact:true})).toHaveValue('98765 43210');
-  expect(await scanMemberQR(page)).toBe('CYGNUS · Member details\nName: Jamie Member\nMember ID: CYG-CS-001\nMobile: +91 98765 43210');
-  await page.getByLabel('Mobile number',{exact:true}).fill('123');
-  await page.getByRole('button',{name:'Save profile',exact:true}).click();
-  await expect(page.getByRole('alert')).toContainText('10-digit Indian mobile number');
-  expect(state.calls.filter(call=>call.path.endsWith('/rpc/save_profile'))).toHaveLength(0);
-  await page.getByLabel('Mobile number',{exact:true}).fill('9123456789');
+  expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
+  expect(await page.getByLabel('Mobile number',{exact:true})).toBeDisabled();
   await page.getByLabel('Name',{exact:true}).fill('Jamie Updated');
-  // Unsaved inputs must never change the shared QR card.
-  expect(await scanMemberQR(page)).toContain('Mobile: +91 98765 43210');
   await page.getByRole('button',{name:'Save profile',exact:true}).click();
   await expect(page.getByRole('status')).toContainText('Profile updated.');
-  expect(state.profile.mobile_number).toBe('+919123456789');
-  expect(await scanMemberQR(page)).toBe('CYGNUS · Member details\nName: Jamie Updated\nMember ID: CYG-CS-001\nMobile: +91 91234 56789');
+  expect(state.profile.mobile_number).toBe('+919876543210');
+  expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
   const download=page.waitForEvent('download');
   await page.getByRole('link',{name:'Download QR code'}).click();
   expect((await download).suggestedFilename()).toBe('CYG-CS-001-QR.png');
@@ -697,7 +693,7 @@ test('admin sees application mobile contacts and approved member QR details',asy
   await page.getByRole('button',{name:'Members',exact:true}).click();
   await page.getByLabel('Search members').fill('New Maker');
   await page.getByRole('button',{name:'Manage',exact:true}).click();
-  expect(await scanMemberQR(page)).toBe('CYGNUS · Member details\nName: New Maker\nMember ID: CYG-CS-002\nMobile: +91 98765 43210');
+  expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-002|22222222-2222-4222-8222-222222222222');
   await page.screenshot({path:info.outputPath('admin-member-contact.png'),fullPage:true});
 });
 
@@ -708,7 +704,7 @@ test('legacy members add their missing mobile before receiving a QR card',async(
   await expect(page.getByRole('img',{name:/QR code with member details/})).toHaveCount(0);
   await page.getByLabel('Mobile number',{exact:true}).fill('9876543210');
   await page.getByRole('button',{name:'Save profile',exact:true}).click();
-  expect(await scanMemberQR(page)).toContain('Mobile: +91 98765 43210');
+  expect(await scanMemberQR(page)).toContain('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
 });
 
 test('OAuth application requires and saves a mobile number; suspended members have no QR card',async({page})=>{
