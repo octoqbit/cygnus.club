@@ -383,14 +383,15 @@ test('mobile contacts validate on signup, application and profile save with owne
   });
   await db.query('update auth.users set email_confirmed_at=now() where id=$1',[id]);
   await as('authenticated',id,async()=>{
-    await db.query("select public.save_profile('Phone Maker','robot','+91 91234 56789')");
-    assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows[0].mobile_number,'+919123456789');
+    await db.query("select public.save_profile('Phone Maker','robot','+91 98765 43210')");
+    assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows[0].mobile_number,'+919876543210');
+    await assert.rejects(db.query("select public.save_profile('Phone Maker','robot','+91 91234 56789')"),/locked after it is saved/);
     for(const phone of ['', '123', '+1 9123456789', 'abcdefghij']) await assert.rejects(db.query("select public.save_profile('Phone Maker','robot',$1)",[phone]),/valid 10-digit/);
     await assert.rejects(db.query("update public.profiles set mobile_number='+919999999999' where id=$1",[id]),/permission denied/);
   });
   await as('authenticated',member,async()=>assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows.length,0));
   await as('anon',null,async()=>assert.rejects(db.query('select mobile_number from public.profiles'),/permission denied/));
-  await as('authenticated',admin,async()=>assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows[0].mobile_number,'+919123456789'));
+  await as('authenticated',admin,async()=>assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows[0].mobile_number,'+919876543210'));
   await assert.rejects(db.query("update public.profiles set mobile_number='bad' where id=$1",[id]),/profiles_mobile_number_check/);
   const oauth='00000000-0000-4000-8000-000000000092';
   await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'phone-oauth@example.test',now())",[oauth]);

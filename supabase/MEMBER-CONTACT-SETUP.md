@@ -12,7 +12,7 @@ The migration is transactional and safe to rerun. It:
 - Adds `normalize_mobile_number(text)` for database-side validation and normalization. Numbers such as `9876543210` and `+91 98765 43210` are stored as `+919876543210`.
 - Updates the existing signup trigger function `handle_new_user()` to copy `mobile_number` from signup metadata and require a number for new applications. OAuth accounts can still be created without one and complete their application afterward.
 - Replaces `submit_application` with an eight-argument version adding `contact_number`. A valid number is required when submitting an application.
-- Replaces `save_profile` with a three-argument version adding `contact_number`, so confirmed users can update their own number. Omitting this argument preserves the saved number for older clients; explicitly sending a blank or invalid number is rejected.
+- Replaces `save_profile` with a three-argument version adding `contact_number`, so confirmed users can save a number once. After a number exists, changing it through the member panel is rejected; administrators can correct it directly in the SQL Editor. Omitting this argument preserves the saved number for older clients.
 - Removes the old RPC overloads, restores authenticated-only RPC grants, and requests a PostgREST schema-cache refresh.
 - Enforces the existing admissions switch for new signup applications and direct application RPC calls. Closing admissions does not block profile edits or confirmation of an existing application.
 
@@ -43,7 +43,7 @@ where routine_schema = 'public'
 order by routine_name, ordinal_position;
 ```
 
-Existing numbers may be `NULL`; do not fill them with invented or placeholder numbers. Existing members can sign in, enter their number under **Your profile**, and select **Save profile**. Their member ID and status are preserved.
+Existing numbers may be `NULL`; do not fill them with invented or placeholder numbers. Existing members can sign in, enter their number under **Your profile**, and select **Save profile** once. Their member ID and status are preserved. After saving, the field is locked; correct mistakes directly in the database.
 
 Check a new email application and an OAuth application if Google sign-in is enabled. Confirm the submitted number appears in **Admin → Applications**, and after approval in **Admin → Members** and the member portal. Try an invalid number and verify it cannot be saved. Approve a member, open their QR card, download it, and scan it.
 

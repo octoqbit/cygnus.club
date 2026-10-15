@@ -537,6 +537,11 @@ begin
   if length(trim(coalesce(display_name,''))) not between 1 and 120 or coalesce(emoji,'') not in ('robot','rocket','satellite','gear','brain','battery','microscope','bulb','technologist') then raise exception 'Invalid profile'; end if;
   if not public.is_email_confirmed() then raise exception 'Confirm your email before updating your profile'; end if;
   if contact_number is not null and public.normalize_mobile_number(contact_number) is null then raise exception 'Enter a valid 10-digit Indian mobile number'; end if;
+  if exists (select 1 from public.profiles where id=auth.uid() and mobile_number is not null)
+     and contact_number is not null
+     and public.normalize_mobile_number(contact_number) <> (select mobile_number from public.profiles where id=auth.uid()) then
+    raise exception 'Mobile number is locked after it is saved; contact an administrator for database changes';
+  end if;
   update public.profiles set mobile_number=case when contact_number is null then mobile_number else public.normalize_mobile_number(contact_number) end,name=trim(display_name),avatar=case when role='admin' then 'technologist' else emoji end where id=auth.uid();
 end; $$;
 
