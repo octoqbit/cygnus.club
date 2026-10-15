@@ -49,8 +49,8 @@ export function MemberScanner() {
     image.src=URL.createObjectURL(file);
   }
   return <section className="panel member-scanner" aria-label="Verify a CYGNUS member QR code">
-    <div className="panel-heading"><div><span className="eyebrow">CORE ACCESS</span><h2>Verify member QR</h2></div><ShieldCheck size={22}/></div>
-    <p className="small-note">Only approved administrators and core members can verify QR codes. Verification checks the live database record, not just the printed QR text.</p>
+    <div className="panel-heading"><div><span className="eyebrow">ADMIN / CORE MEMBER ACCESS</span><h2>Verify member QR</h2></div><ShieldCheck size={22}/></div>
+    <p className="small-note">Administrators and approved core members can verify QR codes. Administrators do not need core-member status. Verification checks the live database record, not just the printed QR text.</p>
     <video ref={videoRef} className={stream?'scanner-video':'scanner-video hidden'} muted playsInline aria-label="QR scanner camera"/>
     <canvas ref={canvasRef} className="scanner-canvas" aria-hidden="true"/>
     <div className="button-row"><button className="primary" onClick={startCamera} disabled={Boolean(stream)}><Camera size={15}/> {stream?'Scanning…':'Open camera'}</button><label className="secondary"><Upload size={15}/> Upload QR image<input type="file" accept="image/*" onChange={upload}/></label></div>
