@@ -28,8 +28,15 @@ export function MemberScanner() {
       setError('');
       const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
       setStream(next);
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      const video=videoRef.current;
+      if (!video) {
+        next.getTracks().forEach(track=>track.stop());
+        setStream(null);
+        throw new Error('Camera preview could not be opened. Use Upload QR image instead.');
+      }
       const scan=()=> {
-        const video=videoRef.current, canvas=canvasRef.current;
+        const canvas=canvasRef.current;
         if (!video||!canvas||!next.active) return;
         if (video.readyState>=2) {
           canvas.width=video.videoWidth; canvas.height=video.videoHeight;
