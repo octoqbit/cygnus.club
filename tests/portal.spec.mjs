@@ -693,7 +693,9 @@ test('admin sees application mobile contacts and approved member QR details',asy
   await page.getByRole('button',{name:'Members',exact:true}).click();
   await page.getByLabel('Search members').fill('New Maker');
   await page.getByRole('button',{name:'Manage',exact:true}).click();
-  expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-002|22222222-2222-4222-8222-222222222222');
+  await expect(page.getByRole('region',{name:'Member QR card'})).toHaveCount(0);
+  await page.getByRole('button',{name:'Verify QR',exact:true}).click();
+  await expect(page.getByRole('region',{name:'Verify a CYGNUS member QR code'})).toBeVisible();
   await page.screenshot({path:info.outputPath('admin-member-contact.png'),fullPage:true});
 });
 

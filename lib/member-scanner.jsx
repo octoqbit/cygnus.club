@@ -21,7 +21,7 @@ export function MemberScanner() {
       const member=Array.isArray(rows)?rows[0]:rows;
       if (!member) throw new Error('This QR code is not authentic or the membership is no longer approved.');
       setResult(member);
-    } catch (e) { setResult(null); setError(e.message); }
+    } catch (e) { setResult(null); setError(e.message.includes('approved')||e.message.includes('authentic') ? 'Not approved or QR code is not authentic.' : e.message); }
   }
   async function startCamera() {
     try {
