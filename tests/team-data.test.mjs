@@ -28,3 +28,10 @@ test('existing regional and scheme-less saved links display correctly in the pub
   const people=decodeTeamRows([{id:'team-person-test',value:JSON.stringify({name:'Example Person',group:'hardware',linkedin:'in.linkedin.com/in/example-person/'})}]);
   assert.equal(people[0].linkedin,'https://www.linkedin.com/in/example-person/');
 });
+
+test('team order sorts numerically with alphabetical ties and safe legacy defaults',()=>{
+  const row=(id,name,sort_order)=>({id:`team-person-${id}`,value:JSON.stringify({name,group:'hardware',sort_order})});
+  const people=decodeTeamRows([row('ten','Ten',10),row('two','Two',2),row('one','One',1),row('zero','Zero',0),row('legacy','Legacy'),row('invalid','Invalid',-1),row('fraction','Fraction',1.5)]);
+  assert.deepEqual(people.map(person=>person.name),['Fraction','Invalid','Legacy','Zero','One','Two','Ten']);
+  assert.deepEqual(people.map(person=>person.sort_order),[0,0,0,0,1,2,10]);
+});

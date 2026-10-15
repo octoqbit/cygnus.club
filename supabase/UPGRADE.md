@@ -30,6 +30,8 @@ The project editor uses `save_content`; a database trigger stores non-preview pr
 
 ## 2. Fix email confirmation redirects
 
+The combined upgrade includes `20261014_require_email_confirmation.sql` before the mobile-number RPCs. Run [verify-setup.sql](verify-setup.sql) after upgrading to confirm that the helper, protected profile policy, and current RPC signatures are installed.
+
 In Supabase → **Authentication → URL Configuration**:
 
 Set **Site URL** to:
@@ -77,6 +79,10 @@ Members send project details to the CYGNUS team; admins publish website entries 
 ## CYGNUS rename (13 October 2026)
 
 For an otherwise up-to-date database, run `migrations/20261013_cygnus_rebrand.sql` before publishing the renamed frontend. The combined `upgrade-existing.sql` already includes it. Verify an existing member now has `CYG-EC-001` (with their own department and original number), then approve a new member and confirm the next number. Test sign-in and existing registrations. Review Authentication email subjects, email template branding, and SMTP sender display name in the hosted dashboard; use **CYGNUS**. Keep existing links and sender addresses until their replacements are configured.
+
+## Mobile numbers and member QR cards (15 October 2026)
+
+Run [20261015_member_mobile.sql](migrations/20261015_member_mobile.sql) before deploying the updated application forms. The combined upgrade already includes it. See [MEMBER-CONTACT-SETUP.md](MEMBER-CONTACT-SETUP.md) for the complete changes, verification queries, and QR behavior. Existing members can add their own number in the portal; existing IDs and approvals are preserved.
 
 ## Homepage photo album
 

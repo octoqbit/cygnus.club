@@ -21,7 +21,7 @@ before(async()=>{
     grant select,insert,delete on storage.objects to anon,authenticated;`);
   await db.exec(readFileSync('supabase/schema.sql','utf8'));
   await db.exec(readFileSync('supabase/seed.sql','utf8'));
-  for(const [id,email] of [[admin,'admin@test.local'],[pending,'pending@test.local'],[member,'member@test.local']]) await db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,now(),$3)`,[id,email,JSON.stringify({name:email,department:'CS',study_year:'2',motivation:'I like robots',role:'admin',status:'approved',avatar:'girl'})]);
+  for(const [id,email] of [[admin,'admin@test.local'],[pending,'pending@test.local'],[member,'member@test.local']]) await db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,now(),$3)`,[id,email,JSON.stringify({name:email,department:'CS',study_year:'2',motivation:'I like robots',mobile_number:'+91 98765 43210',role:'admin',status:'approved',avatar:'girl'})]);
   await db.query(`update public.profiles set role='admin',status='approved' where id=$1`,[admin]);
   await db.query(`update public.profiles set status='approved' where id=$1`,[member]);
   eventId=(await db.query(`update public.content set data=data||'{"startDate":"2099-01-01","endDate":"2099-01-02","registrationOpen":true}' where slug='genesis' returning id`)).rows[0].id;
@@ -135,7 +135,7 @@ test('OAuth applications choose pronouns once and cannot resubmit or reserve the
   await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'oauth@example.test',now())",[id]);
   await as('authenticated',id,async()=>{
     await assert.rejects(db.query("select public.submit_application('New Maker','robot','ece','2','{}','Build robots')"),/Complete all application fields/);
-    await db.query("select public.submit_application('New Maker','satellite','ece','2','{}','Build robots','he/him')");
+    await db.query("select public.submit_application('New Maker','satellite','ece','2','{}','Build robots','he/him','+91 98765 43210')");
     const p=(await db.query('select * from public.profiles where id=$1',[id])).rows[0];
     assert.equal(p.pronouns,'he/him');assert.equal(p.avatar,'satellite');assert(p.submitted_at);
     await assert.rejects(db.query("select public.submit_application('New Maker','robot','ece','2','{}','Build robots','she/her')"),/already been submitted/);
@@ -184,7 +184,21 @@ test('project migration persists briefs, preserves edits and private notes, and 
 
 test('the combined existing-database upgrade is repeatable',async()=>{
   const sql=readFileSync('supabase/upgrade-existing.sql','utf8');
+  // Reproduce an older hosted database without the confirmation helper. Testing
+  // only against the latest schema would hide a missing upgrade dependency.
+  await db.exec(`drop policy profile_read on public.profiles;
+    create policy profile_read on public.profiles for select to authenticated using (id=auth.uid() or public.is_admin());
+    drop function public.is_email_confirmed();`);
   await db.exec(sql);
+  assert.equal((await db.query("select to_regprocedure('public.is_email_confirmed()') is not null as installed")).rows[0].installed,true);
+  const unconfirmed='00000000-0000-4000-8000-000000000080';
+  await db.query("insert into auth.users(id,email) values($1,'unconfirmed@example.test')",[unconfirmed]);
+  await db.query("update public.profiles set status='approved',role='admin' where id=$1",[unconfirmed]);
+  await as('authenticated',unconfirmed,async()=>{
+    assert.equal((await db.query('select public.is_admin() as allowed')).rows[0].allowed,false);
+    assert.equal((await db.query('select * from public.profiles')).rows.length,0);
+    await assert.rejects(db.query("select public.save_profile('Unconfirmed','technologist','9876543210')"),/Confirm your email/);
+  });
   const profiles=(await db.query('select * from public.profiles order by id')).rows;
   const content=(await db.query('select * from public.content order by id')).rows;
   await db.exec(sql);
@@ -340,4 +354,74 @@ test('memories keep drafts private, allow only admins to publish, and survive mi
   });
   await as('anon',null,async()=>assert.equal((await db.query('select * from public.memories')).rows.length,0));
   await as('authenticated',admin,()=>db.query('delete from public.memories where id=$1',[id]));
+});
+
+
+test('mobile migration preserves legacy accounts and contacts when rerun',async()=>{
+  const migration=readFileSync('supabase/migrations/20261015_member_mobile.sql','utf8');
+  // Historical migration tests above can restore the old functions. Apply the latest upgrade.
+  await db.exec(migration);
+  const legacy='00000000-0000-4000-8000-000000000090';
+  await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'legacy-contact@example.test',now())",[legacy]);
+  await db.query("update public.profiles set name='Legacy Member',status='approved',member_id='CYG-OT-090' where id=$1",[legacy]);
+  const before=(await db.query('select * from public.profiles order by id')).rows;
+  await db.exec(migration);
+  assert.deepEqual((await db.query('select * from public.profiles order by id')).rows,before);
+  assert.equal(before.find(p=>p.id===legacy).mobile_number,null);
+});
+
+test('mobile contacts validate on signup, application and profile save with owner/admin-only access',async()=>{
+  const id='00000000-0000-4000-8000-000000000091';
+  const meta={name:'Phone Maker',pronouns:'he/him',motivation:'Build robots',mobile_number:'+91 98765 43210'};
+  await assert.rejects(db.query('insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)',[id,'phone@example.test',JSON.stringify({...meta,mobile_number:'123'})]),/valid 10-digit/);
+  await assert.rejects(db.query('insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)',[id,'phone@example.test',JSON.stringify({...meta,mobile_number:''})]),/valid 10-digit/);
+  await db.query('insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)',[id,'phone@example.test',JSON.stringify(meta)]);
+  let profile=(await db.query('select * from public.profiles where id=$1',[id])).rows[0];
+  assert.equal(profile.mobile_number,'+919876543210');assert.equal(profile.submitted_at,null);
+  await as('authenticated',id,async()=>{
+    await assert.rejects(db.query("select public.save_profile('Phone Maker','robot','9876543210')"),/Confirm your email/);
+  });
+  await db.query('update auth.users set email_confirmed_at=now() where id=$1',[id]);
+  await as('authenticated',id,async()=>{
+    await db.query("select public.save_profile('Phone Maker','robot','+91 91234 56789')");
+    assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows[0].mobile_number,'+919123456789');
+    for(const phone of ['', '123', '+1 9123456789', 'abcdefghij']) await assert.rejects(db.query("select public.save_profile('Phone Maker','robot',$1)",[phone]),/valid 10-digit/);
+    await assert.rejects(db.query("update public.profiles set mobile_number='+919999999999' where id=$1",[id]),/permission denied/);
+  });
+  await as('authenticated',member,async()=>assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows.length,0));
+  await as('anon',null,async()=>assert.rejects(db.query('select mobile_number from public.profiles'),/permission denied/));
+  await as('authenticated',admin,async()=>assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[id])).rows[0].mobile_number,'+919123456789'));
+  await assert.rejects(db.query("update public.profiles set mobile_number='bad' where id=$1",[id]),/profiles_mobile_number_check/);
+  const oauth='00000000-0000-4000-8000-000000000092';
+  await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'phone-oauth@example.test',now())",[oauth]);
+  await as('authenticated',oauth,async()=>{
+    await assert.rejects(db.query("select public.submit_application('Phone OAuth','robot','cs','2','{}','Build robots','he/him')"),/valid 10-digit/);
+    await db.query("select public.submit_application('Phone OAuth','robot','cs','2','{}','Build robots','he/him','9876543210')");
+    assert.equal((await db.query('select mobile_number from public.profiles where id=$1',[oauth])).rows[0].mobile_number,'+919876543210');
+  });
+});
+
+test('closed admissions reject signup applications and direct application RPCs',async()=>{
+  await db.query("insert into public.site_content(id,value) values('applications_open','false') on conflict(id) do update set value='false'");
+  const id='00000000-0000-4000-8000-000000000093';
+  const metadata={name:'Closed Applicant',pronouns:'he/him',motivation:'Build together',mobile_number:'9876543210'};
+  await assert.rejects(db.query('insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)',[id,'closed@example.test',JSON.stringify(metadata)]),/applications are currently closed/);
+  // Signing in with OAuth is allowed, but submitting a new application is not.
+  await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,'closed@example.test',now())",[id]);
+  await as('authenticated',id,async()=>{
+    await assert.rejects(db.query("select public.submit_application('Closed Applicant','robot','cs','2','{}','Build together','he/him','9876543210')"),/applications are currently closed/);
+  });
+  await db.query("update public.site_content set value='true' where id='applications_open'");
+  await as('authenticated',id,()=>db.query("select public.submit_application('Closed Applicant','robot','cs','2','{}','Build together','he/him','9876543210')"));
+});
+
+test('read-only setup audit passes and detects an absent mobile constraint',async()=>{
+  const sql=readFileSync('supabase/verify-setup.sql','utf8');
+  const result=(await db.query(sql)).rows;
+  assert.equal(result.filter(row=>row.result!=='PASS').length,0,JSON.stringify(result));
+  await db.exec('begin; alter table public.profiles drop constraint profiles_mobile_number_check');
+  try {
+    const checks=(await db.query(sql)).rows;
+    assert.equal(checks.find(row=>row.item==='Mobile number constraint').result,'MISSING / CHECK');
+  } finally { await db.exec('rollback'); }
 });

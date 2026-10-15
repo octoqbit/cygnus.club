@@ -1,9 +1,13 @@
+import { normalizeMobile, maskMobileInput, mobileError } from './lib/member-contact.mjs';
+import './lib/mobile-input.css';
 import { supabase, configured, checked, currentProfile, setupMessage, accountURL } from './lib/supabase.js';
 import { loadSiteValues } from './lib/site-content.js';
 import './avatars.css';
 import { techEmojis, profilePronouns } from './lib/profile-options.mjs';
 
 const form=document.querySelector('.join-form');
+const mobileInput=form.elements.mobile_number;
+mobileInput.addEventListener('input',()=>maskMobileInput(mobileInput));
 const emojiChoices=document.getElementById('join-emojis');
 for(const [id,emoji,label] of techEmojis){
   const choice=document.createElement('label'),input=document.createElement('input'),icon=document.createElement('span'),caption=document.createElement('span');
@@ -35,9 +39,11 @@ form.addEventListener('submit',async e=>{
   e.preventDefault();if(!configured)return;button.disabled=true;message.textContent='Submitting your application…';
   try{
     const f=new FormData(form),name=`${f.get('firstName').trim()} ${f.get('lastName').trim()}`;
-    const metadata={name,avatar:f.get('avatar'),pronouns:f.get('pronouns'),department:f.get('department'),study_year:f.get('year'),interests:f.getAll('interest'),motivation:f.get('motivation').trim()};
+    const mobile_number=normalizeMobile(f.get('mobile_number'));
+    if(!mobile_number)throw new Error(mobileError);
+    const metadata={name,mobile_number,avatar:f.get('avatar'),pronouns:f.get('pronouns'),department:f.get('department'),study_year:f.get('year'),interests:f.getAll('interest'),motivation:f.get('motivation').trim()};
     const existing=await currentProfile();
-    if(existing){if(existing.submitted_at||existing.status!=='pending')throw new Error('You already have an account or application. Open your account to check its status.');checked(await supabase.rpc('submit_application',{display_name:name,emoji:metadata.avatar,department_name:metadata.department,year_value:metadata.study_year,interest_values:metadata.interests,reason:metadata.motivation,member_pronouns:profilePronouns(existing)||metadata.pronouns}));message.textContent='Application submitted for admin review. Open your account to check your status.';}
+    if(existing){if(existing.submitted_at||existing.status!=='pending')throw new Error('You already have an account or application. Open your account to check its status.');checked(await supabase.rpc('submit_application',{display_name:name,emoji:metadata.avatar,department_name:metadata.department,year_value:metadata.study_year,interest_values:metadata.interests,reason:metadata.motivation,member_pronouns:profilePronouns(existing)||metadata.pronouns,contact_number:mobile_number}));message.textContent='Application submitted for admin review. Open your account to check your status.';}
     else{const data=checked(await supabase.auth.signUp({email:f.get('email').trim(),password:f.get('password'),options:{data:metadata,emailRedirectTo:accountURL('?mode=login&confirmed=1')}}));if(data.user?.identities?.length===0){message.textContent='If this email already has an account, sign in or reset your password. Otherwise check your email to confirm your application.';}else{message.textContent=data.session?'Application submitted for admin review. Open your account to check your status.':'Application saved. Open the confirmation link sent by Supabase before signing in to the member portal.';}}
     form.reset();const link=document.createElement('a');link.href='/account';link.textContent='Open your account →';link.style.display='block';message.append(link);
   }catch(e){message.textContent=e.message;}finally{button.disabled=false;}

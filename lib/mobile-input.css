@@ -1,0 +1,5 @@
+.mobile-input{display:flex;align-items:stretch;min-width:0;width:100%;font-variant-numeric:tabular-nums}
+.mobile-input .mobile-prefix{display:flex;align-items:center;flex-shrink:0;padding:0 14px;background:#edf1ed;border:1px solid #d8ddd9;border-right:0;border-radius:8px 0 0 8px;color:#48554c;font-size:14px;font-weight:600;user-select:none}
+.mobile-input input{flex:1;min-width:0;width:100%;border-radius:0 8px 8px 0;font-weight:400;letter-spacing:.04em}
+.form-group .mobile-input .mobile-prefix{font-family:var(--font-mono);font-size:1rem;border-color:var(--border-color);border-radius:0;background:#e8ebef;color:var(--text-color)}
+.form-group .mobile-input input{border-radius:0}

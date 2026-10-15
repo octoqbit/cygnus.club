@@ -47,7 +47,6 @@ test('hero stops offscreen and reduced motion waits for explicit playback', asyn
   await expect(video).toHaveJSProperty('paused', true);
   const play = page.frameLocator('iframe[title="CYGNUS robot assembly"]').getByRole('button', {name:'Play animation'});
   await play.click();
-  console.log('hero state', await video.evaluate(() => ({inView,userStarted,hidden:document.hidden,reduced:reducedMotion.matches,paused:robot.paused,error:robot.error?.message})));
   await expect(video).toHaveJSProperty('paused', false);
 });
 

@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async({page})=>{await page.route('https://sac-test.supabase.co/**',route=>route.fulfill({contentType:'application/json',body:'[]'}));});
+
 for (const width of [375,1440]) {
   test(`CYGNUS branding fits public pages and portals at ${width}px`, async ({page},info) => {
     test.setTimeout(90000);
@@ -15,7 +17,7 @@ for (const width of [375,1440]) {
       await expect(brand.locator('.cygnus-name')).toHaveText('CYGNUS');
       await expect(brand.locator('.cygnus-descriptor')).toHaveText('The Technical Club');
       await expect(brand.locator('.cygnus-descriptor')).toBeVisible();
-      if (path === 'index') {
+      if (['index','join'].includes(path)) {
         await expect(page.locator('footer .cygnus-descriptor')).toHaveText('The Technical Club');
       } else {
         await expect(page.locator('footer .cygnus-descriptor')).toHaveCount(0);

@@ -1,5 +1,9 @@
 # Connect the CYGNUS admin and member portal
 
+See [the code/Supabase audit](AUDIT.md) for the latest fixes and hosted checks. Run [verify-setup.sql](verify-setup.sql) in the SQL Editor to identify missing database objects without exposing member data.
+
+For contact numbers and member QR cards, follow [the mobile-number setup guide](MEMBER-CONTACT-SETUP.md). On an otherwise current database, run [20261015_member_mobile.sql](migrations/20261015_member_mobile.sql) before deploying this frontend.
+
 The website uses Supabase Auth, PostgreSQL row-level security, and Storage. No admin password or service-role key belongs in frontend code. `/admin` and `/account` work locally through Vite and on Vercel.
 
 ## 1. Create the database
@@ -57,7 +61,8 @@ A member can connect Google from their signed-in account. Google-only newcomers 
 - **Events / Projects:** create, edit, upload images (JPG, PNG, WebP, GIF, up to 5 MB), save drafts, publish, order, and delete. Full details are stored in a separate protected table.
 - **Visibility:** select which events appear in the homepage event slides and which projects appear on the homepage. Existing slider motion and page designs are preserved.
 - **Website content:** edit existing text, including banner words, without altering banner artwork. Text is plain text and preserves existing formatting. Save changes, then refresh the public page.
-- **Members:** inspect applications, approve and assign a member number, reject, or suspend. Suspension immediately blocks protected data requests even if the user remains signed in.
+- **Applications:** review pending, incomplete, and rejected applications; approve and assign a member number; open or close admissions. Supabase enforces the admissions switch for signup and direct application submissions.
+- **Members:** manage approved or suspended accounts, view mobile contacts and QR cards, suspend or restore access. Suspension immediately blocks protected data requests even if the user remains signed in.
 - **Registrations:** approved members can register once for published, open, non-past events; members can cancel from their account. Admins see the registration list. Deleting an event also deletes its registrations, after a confirmation dialog.
 
 Without Supabase configuration, public pages show the original preview content and account actions display an unavailable state. There are no demo credentials or local-storage admin bypasses. With Supabase configured, an empty content table is treated as empty; deleted items never reappear from fallback data.

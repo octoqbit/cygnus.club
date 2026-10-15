@@ -38,8 +38,16 @@ In **Admin → Memories**, upload a photo or supply an HTTPS image URL, enter it
 
 The homepage shows six photos initially, with **More moments** for the rest. Click a photo to open the viewer; arrow buttons/keys browse, and Escape closes it and restores focus. With no published photos, a designed empty album appears—no generated pictures are presented as club memories. Event and album requests run independently. Edit the section's heading and introduction in **Website content → Home · Memories**.
 
+### Applications and members
+
+The latest [Supabase audit and setup checks](supabase/AUDIT.md) explain the required combined upgrade and include a read-only verification query. `npm test` now runs the complete unit/database suite.
+
+Applications require an Indian mobile number, displayed consistently as **+91 00000 00000** in the application form, admin views, and member profile. Approved members with an assigned ID and saved number can download their personal QR code from the portal; admins can view it under **Members → Manage**. Scanning shows their name, member ID, and mobile number as text. Apply [the mobile-number migration](supabase/migrations/20261015_member_mobile.sql) before deploying; [the setup guide](supabase/MEMBER-CONTACT-SETUP.md) lists all required Supabase changes.
+
+Use **Admin → Applications** to review pending, incomplete, and rejected applications and open or close admissions. Approving an application moves the account to **Admin → Members**, where approved and suspended accounts can be searched and managed. Dashboard review links open Applications.
+
 ### Public team directory
 
-Use **Admin → Team → Add person** to enter a name, choose Builders, Thinkers, Shapers, Connectors, or Storytellers, and optionally add a public email and a LinkedIn `/in/` profile URL (with or without `https://`; regional links are accepted). **Publish person** makes the entry visible immediately. Select **Edit** to update their details or move them to another category; **Remove person** removes their public listing. This does not alter their club account.
+Use **Admin → Team → Add person** to enter a name, choose Builders, Thinkers, Shapers, Connectors, or Storytellers, and optionally add a public email and a LinkedIn `/in/` profile URL (with or without `https://`; regional links are accepted). **Display order** sets the position within the selected category: 0 first, then 1, 2, 3, and so on. Matching numbers sort alphabetically; existing entries default to 0. The admin list is grouped by department and supports department filtering and name/email search. **Publish person** makes the entry visible immediately. Select **Edit** to update their details or move them to another category; **Remove person** removes their public listing. This does not alter their club account.
 
 On the Team page, selecting a category opens its list of names. Selecting a name expands that person's contact links. Empty categories show a coming-soon message; missing contact details stay unset. No people are seeded or copied from member accounts. Entries use separate `team-person-*` rows in the existing `site_content` table and its existing public-read/admin-write policies; no new database migration is required.

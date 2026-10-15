@@ -1494,7 +1494,7 @@ a.footer-social-link:hover {
         border-right: none;
     }
 
-    .logo-x-box {
+    .logo-x-box:not([data-page-repair]) {
         display: none !important;
         /* Removed the +/x icon on mobile */
     }

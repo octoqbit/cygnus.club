@@ -132,6 +132,15 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="mobile_number">Mobile number</label>
+                            <div class="mobile-input">
+                                <span class="mobile-prefix" aria-label="Country code +91, fixed">+91</span>
+                                <input type="tel" id="mobile_number" name="mobile_number" required autocomplete="tel-national" inputmode="numeric" placeholder="00000 00000" aria-describedby="mobile-help">
+                            </div>
+                            <small id="mobile-help">+91 is fixed. Enter only your 10-digit mobile number.</small>
+                        </div>
+
+                        <div class="form-group">
                             <label for="email">Email</label>
                             <input type="email" id="email" name="email" required placeholder="your@gmail.com">
                             <div class="input-corner i-tl"></div>

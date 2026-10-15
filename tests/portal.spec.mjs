@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import jsQR from 'jsqr';
 import slots from '../content-slots.json' with {type:'json'};
 
 // Keep browser tests independent of external font availability.
@@ -6,9 +7,9 @@ test.beforeEach(async({page})=>{await page.route('https://fonts.googleapis.com/*
 
 const adminId='00000000-0000-4000-8000-000000000001',memberId='00000000-0000-4000-8000-000000000002',eventId='00000000-0000-4000-8000-000000000003',projectId='00000000-0000-4000-8000-000000000004';
 async function mock(page,{role='admin',signedIn=false,status='approved',empty=false}={}){
-  const profile={id:role==='admin'?adminId:memberId,email:`${role}@example.test`,name:role==='admin'?'Alex Admin':'Jamie Member',avatar:role==='admin'?'technologist':'robot',pronouns:'he/him',role,status,member_id:'CYG-CS-001',department:'CS',study_year:'2',interests:['Robotics'],motivation:'I want to build robots.',submitted_at:'2026-01-01',created_at:'2026-01-01'};
+  const profile={id:role==='admin'?adminId:memberId,email:`${role}@example.test`,name:role==='admin'?'Alex Admin':'Jamie Member',avatar:role==='admin'?'technologist':'robot',pronouns:'he/him',role,status,member_id:'CYG-CS-001',mobile_number:'+919876543210',department:'CS',study_year:'2',interests:['Robotics'],motivation:'I want to build robots.',submitted_at:'2026-01-01',created_at:'2026-01-01'};
   const applicant={...profile,id:'00000000-0000-4000-8000-000000000005',name:'New Maker',email:'maker@example.test',role:'member',status:'pending',member_id:null};
-  const user={id:profile.id,email:profile.email,aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-01-01'};
+  const user={id:profile.id,email:profile.email,email_confirmed_at:'2026-01-01',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-01-01'};
   const session={access_token:'test-access-token',refresh_token:'test-refresh-token',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
   const state={profile,items:empty?[]:[{id:eventId,kind:'event',slug:'future-build',title:'Future Build',summary:'Build something together.',image:'/about-assets/ai_hackathon.jpg',image_alt:'Robotics workshop',tags:['Robotics'],published:true,sort_order:1,data:{shortTitle:'FUTURE BUILD',subtitle:'A HANDS-ON WORKSHOP',startDate:'2099-01-01',endDate:'2099-01-02',location:'The lab',prizePool:'1,000',symbol:'01',accentColor:'#00e5ff',homeBeyond:true,homeExperience:true,registrationOpen:true}},{id:projectId,kind:'project',slug:'atlas',title:'Atlas Rover',summary:'Public rover preview.',image:'/showcase-assets/rover.jpg',image_alt:'Rover',tags:['Robotics'],published:true,sort_order:1,data:{category:'robotics',subtitle:'AUTONOMOUS EXPLORATION',status:'Concept',homeProject:true}}],memories:[],projectDetails:{},values:{},registrations:[],calls:[],applicant,privateBody:'Members-only instructions. Bring your robot kit.'};
   if(signedIn)await page.addInitScript(session=>localStorage.setItem('sb-sac-test-auth-token',JSON.stringify(session)),session);
@@ -22,9 +23,10 @@ async function mock(page,{role='admin',signedIn=false,status='approved',empty=fa
     else if(path.includes('/auth/v1/logout'))data={};
     else if(path.includes('/auth/v1/signup'))data={user:{...user,identities:[{}]},session:null};
     else if(path.includes('/auth/v1/recover'))data={};
-    else if(path.endsWith('/profiles'))data=url.searchParams.has('id')?state.profile:[state.profile,state.applicant];
+    else if(path.endsWith('/profiles'))data=url.searchParams.has('id')?state.profile:[state.profile,state.applicant,...(state.extraProfiles||[])];
     else if(path.endsWith('/rpc/review_member')){state.applicant.status=body.decision;state.applicant.member_id='CYG-CS-002';data=null;}
-    else if(path.endsWith('/rpc/save_profile')){state.profile.name=body.display_name;state.profile.avatar=body.emoji;data=null;}
+    else if(path.endsWith('/rpc/save_profile')){state.profile.name=body.display_name;state.profile.avatar=body.emoji;state.profile.mobile_number=body.contact_number;data=null;}
+    else if(path.endsWith('/rpc/submit_application')){Object.assign(state.profile,{name:body.display_name,mobile_number:body.contact_number,pronouns:body.member_pronouns,submitted_at:new Date().toISOString()});data=null;}
     else if(path.endsWith('/rpc/save_content')){const item={...body.item,id:body.item.id||crypto.randomUUID()};if(item.kind==='project'){const keys=['category','subtitle','status','homeProject','heroFeatured','imageCaption'];state.projectDetails[item.id]=Object.fromEntries(Object.entries(item.data).filter(([key])=>!keys.includes(key)));item.data=Object.fromEntries(Object.entries(item.data).filter(([key])=>keys.includes(key)));}state.items=state.items.filter(i=>i.id!==item.id).concat(item);state.privateBody=body.private_body;data=item.id;}
     else if(path.endsWith('/memories')) {
       const id=url.searchParams.get('id')?.replace('eq.','');
@@ -40,7 +42,7 @@ async function mock(page,{role='admin',signedIn=false,status='approved',empty=fa
         const id=url.searchParams.get('id')?.replace('eq.','');
         data=id in state.values?[{id}]:[];
         delete state.values[id];
-      }else data=Object.entries(state.values).map(([id,value])=>({id,value}));
+      }else data=url.searchParams.get('id')==='eq.applications_open'?{value:state.values.applications_open}:Object.entries(state.values).map(([id,value])=>({id,value}));
     }
     else if(path.endsWith('/content')){
       if(method==='DELETE'){state.items=state.items.filter(i=>`eq.${i.id}`!==url.searchParams.get('id'));data=null;}
@@ -194,7 +196,7 @@ test('admin can add and delete an event, edit website text, and review an applic
   expect(state.items.find(i=>i.slug==='circuit-jam').published).toBe(true);
   await page.getByRole('button',{name:'Website content',exact:true}).click();await page.getByRole('button',{name:'Home · Beyond Circuits',exact:true}).click();
   await page.getByLabel('BEYOND',{exact:true}).fill('BEYOND TOMORROW ');await page.getByRole('button',{name:/Save changes/}).click();await expect(page.getByRole('status')).toContainText('Website content saved');
-  await page.getByRole('button',{name:/^Members/}).click();await page.getByRole('button',{name:'Review',exact:true}).last().click();page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Approve & assign ID'}).click();await expect.poll(()=>state.applicant.status).toBe('approved');
+  await page.getByRole('button',{name:/^Applications/}).click();await page.getByRole('button',{name:'Review',exact:true}).last().click();page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Approve & assign ID'}).click();await expect.poll(()=>state.applicant.status).toBe('approved');
   await page.goto('/');await expect(page.locator('.s2-giant-text')).toContainText('BEYOND TOMORROW');await expect(page.locator('.section-two .home-event-slide')).toHaveCount(2);
   await page.goto('/admin');await page.getByRole('button',{name:'Events',exact:true}).click();await page.getByRole('row').filter({hasText:'Circuit Jam'}).getByRole('button',{name:'Edit'}).click();page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Delete event'}).click();await expect.poll(()=>state.items.some(i=>i.slug==='circuit-jam')).toBe(false);
 });
@@ -323,6 +325,10 @@ test('unsafe repository links cannot be saved or rendered',async({page})=>{
   await page.goto('/project.html?project=atlas');
   await expect(page.getByRole('heading',{name:'Atlas Rover'})).toBeVisible();
   await expect(page.locator('#project-github')).toBeHidden();
+  state.items.find(item=>item.id===projectId).data.projectUrl='javascript:alert(1)';
+  await page.goto('/projects.html');
+  await expect(page.getByRole('link',{name:'Explore Atlas Rover'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'VISIT LIVE ↗'})).toHaveCount(0);
 });
 test('approved member can read details, register once, update emoji, and cancel',async({page},info)=>{
   const state=await mock(page,{role:'member',signedIn:true});await page.goto('/events.html');await page.getByRole('button',{name:'View details for Future Build'}).click();await expect(page.getByText('Members-only instructions. Bring your robot kit.')).toBeVisible();
@@ -345,10 +351,10 @@ test('CMS text hooks resolve to the intended text without replacing child markup
 
 test('applications collect a chosen password and emoji without requesting admin privileges',async({page})=>{
   const state=await mock(page);await page.goto('/join.html');
-  await page.getByLabel('First Name').fill('Sam');await page.getByLabel('Last Name').fill('Maker');await page.getByLabel('Email',{exact:true}).fill('sam@example.test');await page.getByLabel('Department',{exact:true}).selectOption('cs');await page.getByLabel('Year of Study').selectOption('2');await page.getByLabel('Why do you want to join CYGNUS?').fill('I want to learn robotics.');await page.getByLabel('Choose your password').fill('a-long-test-password');await page.getByRole('radio',{name:'She/Her',exact:true}).check();await page.getByRole('radio',{name:'Satellite',exact:true}).check();await page.getByRole('button',{name:'SUBMIT APPLICATION'}).click();
-  await expect(page.getByRole('status')).toContainText('Check your email');
+  await page.getByLabel('First Name').fill('Sam');await page.getByLabel('Last Name').fill('Maker');await page.getByLabel('Mobile number',{exact:true}).fill('9876543210');await expect(page.getByLabel('Mobile number',{exact:true})).toHaveValue('98765 43210');await expect(page.locator('.mobile-prefix')).toHaveText('+91');await page.getByLabel('Email',{exact:true}).fill('sam@example.test');await page.getByLabel('Department',{exact:true}).selectOption('cs');await page.getByLabel('Year of Study').selectOption('2');await page.getByLabel('Why do you want to join CYGNUS?').fill('I want to learn robotics.');await page.getByLabel('Choose your password').fill('a-long-test-password');await page.getByRole('radio',{name:'She/Her',exact:true}).check();await page.getByRole('radio',{name:'Satellite',exact:true}).check();await page.getByRole('button',{name:'SUBMIT APPLICATION'}).click();
+  await expect(page.getByRole('status')).toContainText('Open the confirmation link');
   const signup=state.calls.find(c=>c.path.endsWith('/signup')).body;
-  expect(signup.data.avatar).toBe('satellite');expect(signup.data.pronouns).toBe('she/her');expect(state.calls.find(c=>c.path.endsWith('/signup')).url).toContain('redirect_to=https%3A%2F%2Fsaclub.tech%2Faccount%3Fmode%3Dlogin%26confirmed%3D1');expect(signup.data.name).toBe('Sam Maker');expect(signup.data.role).toBeUndefined();expect(signup.data.status).toBeUndefined();
+  expect(signup.data.mobile_number).toBe('+919876543210');expect(signup.data.avatar).toBe('satellite');expect(signup.data.pronouns).toBe('she/her');expect(state.calls.find(c=>c.path.endsWith('/signup')).url).toContain('redirect_to=https%3A%2F%2Fsaclub.tech%2Faccount%3Fmode%3Dlogin%26confirmed%3D1');expect(signup.data.name).toBe('Sam Maker');expect(signup.data.role).toBeUndefined();expect(signup.data.status).toBeUndefined();
 });
 
 test('pending member cannot open protected details and gets a useful status',async({page})=>{
@@ -572,4 +578,149 @@ test('team popup reports a load failure and can retry without reopening',async({
   await expect(page.getByText('The team list couldn’t load. Please try again.')).toBeVisible();
   await page.getByRole('button',{name:'Try again',exact:true}).click();
   await expect(page.getByText('The Connectors lineup will appear here soon.')).toBeVisible();
+});
+
+test('applications and members are separate through approval, suspension and restoration',async({page},info)=>{
+  const state=await mock(page,{signedIn:true});
+  state.extraProfiles=[{...state.applicant,id:'incomplete',name:'Incomplete Maker',submitted_at:null},{...state.applicant,id:'rejected',name:'Rejected Maker',status:'rejected'}];
+  await page.goto('/admin');
+  await page.getByRole('button',{name:'View all',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Applications',exact:true})).toBeVisible();
+  await expect(page.getByText('Alex Admin',{exact:true})).toHaveCount(0);
+  await page.getByLabel('Filter applications').selectOption('incomplete');
+  await expect(page.getByText('Incomplete Maker',{exact:true})).toBeVisible();
+  await expect(page.locator('.member-list-row strong').filter({hasText:/^New Maker$/})).toHaveCount(0);
+  await page.getByLabel('Filter applications').selectOption('rejected');
+  await expect(page.getByText('Rejected Maker',{exact:true})).toBeVisible();
+  await page.getByLabel('Filter applications').selectOption('pending');
+  await page.getByLabel('Accept club applications').uncheck();
+  await expect.poll(()=>state.values.applications_open).toBe('false');
+  await page.getByRole('button',{name:'Refresh',exact:true}).click();
+  await expect(page.getByLabel('Accept club applications')).not.toBeChecked();
+  await page.getByRole('button',{name:'Review',exact:true}).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Approve & assign ID'}).click();
+  await expect(page.locator('.member-list-row strong').filter({hasText:/^New Maker$/})).toHaveCount(0);
+  await page.getByRole('button',{name:'Members',exact:true}).click();
+  await page.getByLabel('Search members').fill('CYG-CS-002');
+  await expect(page.locator('.member-list-row strong').filter({hasText:/^New Maker$/})).toBeVisible();
+  await expect(page.getByText('Incomplete Maker',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Manage',exact:true}).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Suspend access',exact:true}).click();
+  await expect.poll(()=>state.applicant.status).toBe('suspended');
+  await page.getByLabel('Filter members').selectOption('suspended');
+  await expect(page.locator('.member-list-row strong').filter({hasText:/^New Maker$/})).toBeVisible();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Restore access',exact:true}).click();
+  await expect.poll(()=>state.applicant.status).toBe('approved');
+  await page.getByLabel('Filter members').selectOption('approved');
+  await expect(page.locator('.member-list-row strong').filter({hasText:/^New Maker$/})).toBeVisible();
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:info.outputPath('separate-members-mobile.png'),fullPage:true});
+});
+
+test('team department filters and saved display order control the public lineup',async({page},info)=>{
+  const state=await mock(page,{signedIn:true});
+  state.values['team-person-a']=JSON.stringify({name:'Alpha Maker',group:'hardware',sort_order:1});
+  state.values['team-person-z']=JSON.stringify({name:'Zeta Maker',group:'hardware',sort_order:2});
+  state.values['team-person-d']=JSON.stringify({name:'Design Maker',group:'design',sort_order:0});
+  await page.goto('/admin');
+  await page.getByRole('button',{name:'Team',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'The Builders',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'The Shapers',exact:true})).toBeVisible();
+  await page.getByLabel('Filter team by department').selectOption('hardware');
+  await expect(page.getByText('Design Maker',{exact:true})).toHaveCount(0);
+  await page.getByRole('row').filter({hasText:'Zeta Maker'}).getByRole('button',{name:'Edit'}).click();
+  await page.getByLabel('Display order',{exact:true}).fill('0');
+  await page.getByRole('button',{name:'Save person',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Zeta Maker is now listed');
+  expect(JSON.parse(state.values['team-person-z']).sort_order).toBe(0);
+  await expect(page.locator('tbody tr').first()).toContainText('Zeta Maker');
+  await page.getByLabel('Search team').fill('Alpha');
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  await page.getByLabel('Search team').fill('');
+  await page.screenshot({path:info.outputPath('team-department-order.png'),fullPage:true});
+  await page.getByLabel('Filter team by department').selectOption('design');
+  await page.getByRole('button',{name:'Add person',exact:true}).click();
+  await expect(page.getByLabel('Team category',{exact:true})).toHaveValue('design');
+  await expect(page.getByLabel('Display order',{exact:true})).toHaveValue('0');
+  await page.goto('/team.html');
+  await page.getByRole('button',{name:'Meet the Builders',exact:true}).click();
+  await expect(page.locator('.team-person-name')).toHaveText(['Zeta Maker+','Alpha Maker+']);
+});
+
+async function scanMemberQR(page) {
+  const image=page.getByRole('img',{name:/QR code with member details/});
+  await expect(image).toBeVisible();
+  const pixels=await image.evaluate(async img=>{
+    await img.decode();
+    const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+    const context=canvas.getContext('2d');context.drawImage(img,0,0);
+    return {data:Array.from(context.getImageData(0,0,canvas.width,canvas.height).data),width:canvas.width,height:canvas.height};
+  });
+  return jsQR(new Uint8ClampedArray(pixels.data),pixels.width,pixels.height)?.data;
+}
+
+test('member mobile numbers and downloaded QR codes use saved details at mobile size',async({page},info)=>{
+  const state=await mock(page,{role:'member',signedIn:true});
+  await page.setViewportSize({width:390,height:844});await page.goto('/account');
+  await expect(page.getByLabel('Mobile number',{exact:true})).toHaveValue('98765 43210');
+  expect(await scanMemberQR(page)).toBe('CYGNUS · Member details\nName: Jamie Member\nMember ID: CYG-CS-001\nMobile: +91 98765 43210');
+  await page.getByLabel('Mobile number',{exact:true}).fill('123');
+  await page.getByRole('button',{name:'Save profile',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('10-digit Indian mobile number');
+  expect(state.calls.filter(call=>call.path.endsWith('/rpc/save_profile'))).toHaveLength(0);
+  await page.getByLabel('Mobile number',{exact:true}).fill('9123456789');
+  await page.getByLabel('Name',{exact:true}).fill('Jamie Updated');
+  // Unsaved inputs must never change the shared QR card.
+  expect(await scanMemberQR(page)).toContain('Mobile: +91 98765 43210');
+  await page.getByRole('button',{name:'Save profile',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Profile updated.');
+  expect(state.profile.mobile_number).toBe('+919123456789');
+  expect(await scanMemberQR(page)).toBe('CYGNUS · Member details\nName: Jamie Updated\nMember ID: CYG-CS-001\nMobile: +91 91234 56789');
+  const download=page.waitForEvent('download');
+  await page.getByRole('link',{name:'Download QR code'}).click();
+  expect((await download).suggestedFilename()).toBe('CYG-CS-001-QR.png');
+  await expect(page.locator('body')).toHaveJSProperty('scrollWidth',390);
+  await page.screenshot({path:info.outputPath('member-mobile-qr.png'),fullPage:true});
+});
+
+test('admin sees application mobile contacts and approved member QR details',async({page},info)=>{
+  const state=await mock(page,{signedIn:true});await page.goto('/admin');
+  await page.getByRole('button',{name:/^Applications/}).click();
+  await expect(page.getByRole('link',{name:'+91 98765 43210',exact:true})).toHaveAttribute('href','tel:+919876543210');
+  await page.getByRole('button',{name:'Review',exact:true}).click();
+  await expect(page.getByRole('region',{name:'Member QR card'})).toHaveCount(0);
+  page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Approve & assign ID'}).click();
+  await expect.poll(()=>state.applicant.status).toBe('approved');
+  await page.getByRole('button',{name:'Members',exact:true}).click();
+  await page.getByLabel('Search members').fill('New Maker');
+  await page.getByRole('button',{name:'Manage',exact:true}).click();
+  expect(await scanMemberQR(page)).toBe('CYGNUS · Member details\nName: New Maker\nMember ID: CYG-CS-002\nMobile: +91 98765 43210');
+  await page.screenshot({path:info.outputPath('admin-member-contact.png'),fullPage:true});
+});
+
+test('legacy members add their missing mobile before receiving a QR card',async({page})=>{
+  const state=await mock(page,{role:'member',signedIn:true});state.profile.mobile_number=null;
+  await page.goto('/account');
+  await expect(page.getByText('Save your mobile number in your profile to create your QR card.')).toBeVisible();
+  await expect(page.getByRole('img',{name:/QR code with member details/})).toHaveCount(0);
+  await page.getByLabel('Mobile number',{exact:true}).fill('9876543210');
+  await page.getByRole('button',{name:'Save profile',exact:true}).click();
+  expect(await scanMemberQR(page)).toContain('Mobile: +91 98765 43210');
+});
+
+test('OAuth application requires and saves a mobile number; suspended members have no QR card',async({page})=>{
+  const state=await mock(page,{role:'member',signedIn:true,status:'pending'});state.profile.submitted_at=null;state.profile.mobile_number=null;
+  await page.goto('/account');
+  await page.getByLabel('Mobile number',{exact:true}).fill('+91 91234 56789');
+  await page.getByRole('combobox',{name:'Department',exact:true}).selectOption('cs');
+  await page.getByLabel('Year of study',{exact:true}).fill('2');
+  await page.getByLabel('Why would you like to join?').fill('Build robots');
+  await page.getByRole('button',{name:'Submit application',exact:true}).click();
+  await expect(page.getByRole('status').filter({hasText:'Your application is now with the admin team.'})).toBeVisible();
+  expect(state.calls.find(call=>call.path.endsWith('/rpc/submit_application')).body.contact_number).toBe('+919123456789');
+  state.profile.status='suspended';await page.reload();
+  await expect(page.getByRole('region',{name:'Member QR card'})).toHaveCount(0);
 });

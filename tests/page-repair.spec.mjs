@@ -71,7 +71,7 @@ test('reduced motion and unavailable WebGL still complete the repair', async ({ 
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.addInitScript(() => {
         const getContext = HTMLCanvasElement.prototype.getContext;
-        HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+        HTMLCanvasElement.prototype.getContext = function (type, ...args) {
             return /webgl/.test(type) ? null : getContext.call(this, type, ...args);
         };
     });
