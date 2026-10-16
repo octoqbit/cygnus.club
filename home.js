@@ -17,6 +17,7 @@ document.querySelectorAll('[data-event-carousel]').forEach((carousel) => {
     let index = 0;
     let paused = reducedMotion.matches;
     let focused = false;
+    let hovered = false;
     let visible = !('IntersectionObserver' in window);
     let timer;
 
@@ -33,8 +34,8 @@ document.querySelectorAll('[data-event-carousel]').forEach((carousel) => {
 
     function schedule() {
         clearInterval(timer);
-        if (!paused && !focused && visible && !document.hidden) {
-            timer = setInterval(() => show(index + 1), 3500);
+        if (slides.length > 1 && !paused && !focused && !hovered && visible && !document.hidden) {
+            timer = setInterval(() => show(index + 1), 6000);
         }
     }
 
@@ -63,6 +64,17 @@ document.querySelectorAll('[data-event-carousel]').forEach((carousel) => {
     });
     carousel.addEventListener('focusout', (event) => {
         focused = hasKeyboardFocus(event.relatedTarget);
+        schedule();
+    });
+    // Let people read a card without it moving; touch taps must not latch a hover pause.
+    const viewport = carousel.querySelector('.home-event-viewport');
+    viewport.addEventListener('pointerenter', (event) => {
+        if (event.pointerType === 'touch') return;
+        hovered = true;
+        schedule();
+    });
+    viewport.addEventListener('pointerleave', () => {
+        hovered = false;
         schedule();
     });
     document.addEventListener('visibilitychange', schedule);
