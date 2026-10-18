@@ -5,13 +5,13 @@ async function publicData(page) {
 }
 
 for (const width of [360, 768, 1366]) {
-  test(`optimized public pages fit ${width}px without broken assets`, async ({page}, info) => {
+  test(`optimized public pages fit ${width}px without broken assets`, async ({page, baseURL}, info) => {
     await publicData(page);
     await page.setViewportSize({width, height:900});
     const failures = [], originals = [];
     page.on('pageerror', error => failures.push(error.message));
     page.on('response', response => {
-      if (response.url().startsWith('http://127.0.0.1:5178/') && response.status() >= 400) failures.push(`${response.status()} ${response.url()}`);
+      if (new URL(response.url()).origin === new URL(baseURL).origin && response.status() >= 400) failures.push(`${response.status()} ${response.url()}`);
     });
     page.on('request', request => {
       if (/cygnus-(?:light-original|dark-original|symbol)\.png|college-logo\.png|(?:crew|banner_notext|project-atlas)\.jpg/.test(request.url())) originals.push(request.url());

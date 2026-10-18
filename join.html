@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="/loader.css">
     <script type="module" src="/page-animator.js"></script>
     <link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="/lib/mobile-nav.css">
 </head>
 
 <body>
@@ -58,17 +59,21 @@
             </div>
 
             <!-- 2x2 Dots Mobile Menu Toggle -->
-            <div class="nav-cell mobile-menu-cell" id="mobile-menu-btn">
-                <div class="dots-grid">
+            <a href="/account" class="mobile-account-link" data-mobile-account aria-label="Your account" title="Your account" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></a>
+            <button class="nav-cell mobile-menu-cell" id="mobile-menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobile-nav-links">
+                <span class="dots-grid" aria-hidden="true">
                     <span></span><span></span><span></span><span></span>
-                </div>
-            </div>
+                </span>
+            </button>
 
-            <nav class="nav-cell links-cell" id="mobile-nav-links">
-                <a href="index.html" class="nav-link"><span>Home</span></a>
-                <a href="about.html" class="nav-link"><span>About</span></a>
-                <a href="projects.html" class="nav-link"><span>Projects</span></a>
-                <a href="index.html" class="nav-link"><span>Events</span></a>
+            <nav class="nav-cell links-cell" id="mobile-nav-links" aria-label="Main navigation">
+                <a href="index.html" class="nav-link" data-nav-page="home"><span>Home</span></a>
+                <a href="about.html" class="nav-link" data-nav-page="about"><span>About</span></a>
+                <a href="projects.html" class="nav-link" data-nav-page="projects"><span>Projects</span></a>
+                <a href="events.html" class="nav-link" data-nav-page="events"><span>Events</span></a>
+                <a href="team.html" class="mobile-nav-only nav-link" data-nav-page="team"><span>Team</span></a>
+                <a href="/account" class="mobile-nav-only nav-link" data-mobile-guest="signin"><span>Sign in</span></a>
+                <a href="join.html" class="mobile-nav-only nav-link" data-mobile-guest="join"><span>Join CYGNUS</span></a>
             </nav>
 
             <div class="nav-cell cta-cell">
@@ -333,9 +338,23 @@
         const mobileBtn = document.getElementById('mobile-menu-btn');
         const mobileNavLinks = document.getElementById('mobile-nav-links');
         if (mobileBtn && mobileNavLinks) {
+            const setMenuOpen = (open) => {
+                mobileNavLinks.classList.toggle('menu-open', open);
+                mobileBtn.classList.toggle('active', open);
+                mobileBtn.setAttribute('aria-expanded', String(open));
+                mobileBtn.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+            };
             mobileBtn.addEventListener('click', () => {
-                mobileNavLinks.classList.toggle('menu-open');
-                mobileBtn.classList.toggle('active');
+                setMenuOpen(mobileBtn.getAttribute('aria-expanded') !== 'true');
+            });
+            mobileNavLinks.addEventListener('click', event => {
+                if (event.target.closest('a')) setMenuOpen(false);
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && mobileBtn.getAttribute('aria-expanded') === 'true') {
+                    setMenuOpen(false);
+                    mobileBtn.focus();
+                }
             });
         }
 

@@ -14,10 +14,21 @@
 <link rel="stylesheet" href="/loader.css">
 <script type="module" src="/page-animator.js"></script>
 <link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="/lib/mobile-nav.css">
 </head>
 <body class="team-world">
   <a class="skip-link" href="#main">Skip to content</a><div class="scroll-progress" aria-hidden="true"></div>
-  <header class="world-nav"><a class="world-brand cygnus-brand" href="index.html" aria-label="CYGNUS home"><img src="/brand/cygnus-symbol-web.png" alt="" class="cygnus-symbol" width="64" height="42"><span class="cygnus-wordmark"><span class="cygnus-name">CYGNUS</span><span class="cygnus-descriptor">The Technical Club</span></span></a><span class="world-edition">THE HUMAN SIDE OF HARDWARE</span><button class="world-menu" aria-expanded="false" aria-controls="world-links" aria-label="Open navigation">☰</button><nav id="world-links" aria-label="Main navigation"><a href="index.html">Home</a><a href="projects.html">Projects</a><a href="team.html" aria-current="page">Team</a><a href="events.html">Events</a><a href="join.html" class="nav-join" data-member-cta><span data-cta-label>Find your people ↗</span></a></nav></header>
+  <header class="world-nav"><a class="world-brand cygnus-brand" href="index.html" aria-label="CYGNUS home"><img src="/brand/cygnus-symbol-web.png" alt="" class="cygnus-symbol" width="64" height="42"><span class="cygnus-wordmark"><span class="cygnus-name">CYGNUS</span><span class="cygnus-descriptor">The Technical Club</span></span></a><span class="world-edition">THE HUMAN SIDE OF HARDWARE</span><a href="/account" class="mobile-account-link" data-mobile-account aria-label="Your account" title="Your account" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></a>
+            <button class="world-menu" aria-expanded="false" aria-controls="world-links" aria-label="Open navigation">☰</button><nav id="world-links" aria-label="Main navigation">
+                <a href="index.html" data-nav-page="home">Home</a>
+                <a href="about.html" class="mobile-nav-only" data-nav-page="about"><span>About</span></a>
+                <a href="projects.html" data-nav-page="projects">Projects</a>
+                <a href="events.html" data-nav-page="events">Events</a>
+                <a href="team.html" aria-current="page" data-nav-page="team">Team</a>
+                <a href="join.html" class="desktop-nav-only nav-join" data-member-cta><span data-cta-label>Find your people ↗</span></a>
+                <a href="/account" class="mobile-nav-only" data-mobile-guest="signin"><span>Sign in</span></a>
+                <a href="join.html" class="mobile-nav-only" data-mobile-guest="join"><span>Join CYGNUS</span></a>
+            </nav></header>
   <main id="main">
     <section class="team-hero"><div class="section-top mono"><span>MEET THE CYGNUS COLLECTIVE</span><span>MANY MINDS. ONE BIG WHAT IF.</span></div><div class="team-title-row"><h1>THE GOOD<br>KIND OF <em>CHAOS.</em></h1><div class="team-hero-note"><span aria-hidden="true">✳</span><p>Different brains.<br>Shared curiosity.<br>Very good company.</p><a href="#crew-map">FIND YOUR CREW ↓</a></div></div><div class="crew-art-wrap" data-parallax><img class="crew-hero-image" src="showcase-assets/crew-1280.webp" srcset="showcase-assets/crew-640.webp 640w, showcase-assets/crew-1280.webp 1280w" sizes="(max-width: 700px) 100vw, 90vw" decoding="async" alt="Five playful illustrated robot mascots building a circuit together." width="1536" height="1024" fetchpriority="high"><div class="crew-sticker sticker-one">LESS EGO.<br>MORE LEGO.*<small>*AND CIRCUITS.</small></div><div class="crew-sticker sticker-two">MADE OF<br><strong>WHAT IF?</strong></div><span class="crew-photo-caption mono">A FICTIONAL ROBOT CREW. A VERY REAL TEAM SPIRIT.</span></div><div class="team-hero-bottom mono"><span>NO LONE GENIUS REQUIRED.</span><span>JUST BRING YOURSELF. ↘</span></div></section>
     <div class="kinetic-strip" aria-hidden="true"><div>GOOD QUESTIONS. GREAT COMPANY. ✳ GOOD QUESTIONS. GREAT COMPANY. ✳ GOOD QUESTIONS. GREAT COMPANY. ✳&nbsp;</div></div>

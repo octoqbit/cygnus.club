@@ -3,16 +3,26 @@ import { test, expect } from '@playwright/test';
 const triggerName = 'Break the page and let the robot repair it';
 test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => sessionStorage.setItem('sac_booted', 'true'));
+    await page.route('https://fonts.googleapis.com/**', route => route.abort());
+    await page.route('https://sac-test.supabase.co/**', route => route.fulfill({ contentType: 'application/json', body: '[]' }));
 });
 
 for (const mobile of [false, true]) {
-    test(`robot visibly repairs the actual page and restores it on ${mobile ? 'mobile' : 'desktop'}`, async ({ page }, info) => {
+    test(mobile ? 'mobile header hides page repair and keeps navigation usable' : 'robot visibly repairs the actual page and restores it on desktop', async ({ page }, info) => {
         test.setTimeout(100000);
         if (mobile) await page.setViewportSize({ width: 390, height: 844 });
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.goto('/index.html');
         const trigger = page.getByRole('button', { name: triggerName });
+        if (mobile) {
+            await expect(trigger).toBeHidden();
+            await page.getByRole('button', { name: 'Open navigation' }).click();
+            await page.getByRole('link', { name: 'About', exact: true }).click();
+            await expect(page).toHaveURL(/about\.html$/);
+            expect(errors).toEqual([]);
+            return;
+        }
         await expect(trigger).toBeVisible();
         await page.evaluate(() => { window.originalPage = document.querySelector('.page-wrapper'); });
         await trigger.click();
@@ -60,7 +70,7 @@ test('skip, Escape, resize, and repeated activation restore usable content', asy
     await trigger.click();
     await page.setViewportSize({ width: 800, height: 700 });
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(trigger).toBeVisible();
+    await expect(trigger).toBeHidden();
     const menu = page.getByRole('button', { name: 'Open navigation' });
     if (await menu.isVisible()) await menu.click();
     await page.getByRole('link', { name: 'About', exact: true }).click();

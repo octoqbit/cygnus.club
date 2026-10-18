@@ -1,5 +1,7 @@
 import { normalizeMobile, maskMobileInput, mobileError } from './lib/member-contact.mjs';
 import './lib/mobile-input.css';
+import { initializeMemberCta } from './lib/member-cta.js';
+initializeMemberCta();
 import { supabase, configured, checked, currentProfile, setupMessage, accountURL } from './lib/supabase.js';
 import { loadSiteValues } from './lib/site-content.js';
 import './avatars.css';

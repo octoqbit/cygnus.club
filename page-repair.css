@@ -142,9 +142,11 @@
 .repair-controls button:focus-visible { outline: 2px solid #ffac69; outline-offset: 3px; }
 body.page-is-repairing > .page-wrapper { visibility: hidden; }
 body.page-is-repairing > .cursor-robo, body.page-is-repairing > .cursor-robo-toggle { visibility: hidden; }
+@media (max-width: 900px) {
+    .home-page .navbar .logo-x-box { display: none; }
+    .home-page .navbar .logo-cell { padding-left: 12px; }
+}
 @media (max-width: 700px) {
-    .home-page .logo-x-box { display: flex; width: 44px; margin-right: 12px; }
-    .home-page .logo-x-box .cross-icon { width: 24px; height: 24px; }
     .repair-heading { top: 16px; padding: 16px; }
     .repair-heading p { font-size: 10px; }
     .repair-stage[data-phase="repairing"] .repair-heading p { display: none; }

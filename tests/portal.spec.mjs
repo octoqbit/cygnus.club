@@ -337,6 +337,7 @@ test('approved member can read details, register once, update emoji, and cancel'
   await page.getByRole('button',{name:'REGISTER FOR EVENT',exact:true}).click();await expect(page.getByRole('button',{name:'YOU’RE REGISTERED'})).toBeDisabled();expect(state.registrations.length).toBe(1);
   await page.goto('/account');await expect(page.getByLabel('Pronouns (fixed)')).toHaveValue('He/Him');await expect(page.getByLabel('Pronouns (fixed)')).toHaveAttribute('readonly','');await expect(page.getByRole('group',{name:'Your tech emoji'}).getByRole('radio')).toHaveCount(8);await page.getByRole('radio',{name:'Rocket',exact:true}).check();await page.getByRole('button',{name:'Save profile',exact:true}).click();await expect.poll(()=>state.profile.avatar).toBe('rocket');expect(state.profile.pronouns).toBe('he/him');await expect(page.getByRole('img',{name:'Rocket',exact:true})).toBeVisible();await page.screenshot({path:info.outputPath('robot-profile.png'),fullPage:true});
   page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect.poll(()=>state.registrations.length).toBe(0);
+  await page.setViewportSize({width:375,height:812});await page.goto('/');await expect(page.locator('[data-mobile-account]').getByRole('img',{name:'Rocket',exact:true})).toBeVisible();
 });
 test('empty database never resurrects deleted items and mobile admin has no overflow',async({page},info)=>{
   await mock(page,{signedIn:true,empty:true});await page.goto('/');await expect(page.locator('.home-event-slide')).toHaveCount(0);await expect(page.locator('.project-card')).toHaveCount(0);
@@ -364,8 +365,11 @@ test('pending member cannot open protected details and gets a useful status',asy
 });
 
 test('edited event banner words and home button words persist without changing banner artwork',async({page})=>{
-  const state=await mock(page);state.values['events-006']='BUILD YOUR NEXT';state.values['home-009-0']='DISCOVER THE LAB';await page.goto('/events.html');await expect(page.locator('#ev-title')).toContainText('BUILD YOUR NEXT');await expect(page.locator('.ev-hero-image')).toHaveAttribute('src',/banner_notext/);
+  const state=await mock(page,{signedIn:true});state.values['events-006']='BUILD YOUR NEXT';state.values['home-009-0']='DISCOVER THE LAB';state.values['home-010-0']='JOIN OUR CLUB';await page.goto('/events.html');await expect(page.locator('#ev-title')).toContainText('BUILD YOUR NEXT');await expect(page.locator('.ev-hero-image')).toHaveAttribute('src',/banner_notext/);
   await page.goto('/');const button=page.locator('[data-cms="home-009"]');await expect(button).toHaveText('DISCOVER THE LAB');await button.hover();await page.mouse.move(0,0);await expect(button).toHaveText('DISCOVER THE LAB');
+  await page.evaluate(async()=>{const {supabase}=await import('/lib/supabase.js');await supabase.auth.signOut();});
+  await expect(button).toBeVisible();await page.setViewportSize({width:375,height:812});
+  await expect(button).toBeHidden();const join=page.locator('[data-cms="home-010"]');await expect(join).toBeVisible();await expect(join).toHaveAttribute('href','join.html');await expect(join).toHaveText('JOIN OUR CLUB');await join.hover();await page.mouse.move(0,0);await expect(join).toHaveText('JOIN OUR CLUB');
 });
 
 
@@ -464,7 +468,7 @@ test('admin can switch event details between public and members only',async({pag
   const guest=await page.context().browser().newPage();
   try {
     const guestState=await mock(guest);guestState.items=state.items;
-    await guest.goto('http://127.0.0.1:5178/events.html?event=future-build');
+    await guest.goto(new URL('/events.html?event=future-build', page.url()).href);
     await expect(guest.getByRole('dialog')).toContainText(state.privateBody);
     await guest.getByRole('button',{name:'Close event details'}).click();
     await expect(guest.getByRole('dialog')).not.toBeVisible();

@@ -23,6 +23,13 @@
     background: transparent;
 }
 
+@media (min-width: 901px) {
+    /* Home is mobile-only, so About begins the visible desktop link group. */
+    .home-page .navbar [data-nav-page="about"] {
+        border-left: 1px solid var(--border-color);
+    }
+}
+
 .home-page .grid-bg {
     background-image: linear-gradient(#7c878714 1px, transparent 1px),
         linear-gradient(90deg, #7c878714 1px, transparent 1px);
@@ -175,7 +182,7 @@
 
 .home-page .s2-component-wrapper.home-workbench { border-radius: 28px 28px 0 0; }
 .home-page .s3-component-wrapper.home-workbench { border-radius: 0 0 28px 28px; }
-.home-page .home-workbench video { border-radius: inherit !important; }
+.home-page .home-workbench video { border-radius: inherit !important; mix-blend-mode: multiply; }
 .home-workbench figcaption {
     position: absolute;
     inset: auto 0 0;

@@ -10,10 +10,21 @@
   <link rel="stylesheet" href="showcase.css"><link rel="stylesheet" href="project-detail.css">
   <link rel="icon" type="image/svg+xml" href="/cygnus-favicon.svg">
 <link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="/lib/mobile-nav.css">
 </head>
 <body class="project-detail-page">
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="world-nav"><a class="world-brand cygnus-brand" href="index.html" aria-label="CYGNUS home"><span class="cygnus-symbol cygnus-symbol-dark"><span class="cygnus-dark-window"><img src="/brand/cygnus-dark-web.webp" alt="" width="1536" height="1024"></span></span><span class="cygnus-wordmark"><span class="cygnus-name">CYGNUS</span><span class="cygnus-descriptor">The Technical Club</span></span></a><span class="world-edition">THE EXPERIMENTAL DIVISION</span><button class="world-menu" aria-expanded="false" aria-controls="world-links" aria-label="Open navigation">☰</button><nav id="world-links" aria-label="Main navigation"><a href="index.html">Home</a><a href="projects.html" aria-current="page">Projects</a><a href="team.html">Team</a><a href="events.html">Events</a><a href="join.html" class="nav-join" data-member-cta><span data-cta-label>Join the lab ↗</span></a></nav></header>
+  <header class="world-nav"><a class="world-brand cygnus-brand" href="index.html" aria-label="CYGNUS home"><span class="cygnus-symbol cygnus-symbol-dark"><span class="cygnus-dark-window"><img src="/brand/cygnus-dark-web.webp" alt="" width="1536" height="1024"></span></span><span class="cygnus-wordmark"><span class="cygnus-name">CYGNUS</span><span class="cygnus-descriptor">The Technical Club</span></span></a><span class="world-edition">THE EXPERIMENTAL DIVISION</span><a href="/account" class="mobile-account-link" data-mobile-account aria-label="Your account" title="Your account" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></a>
+            <button class="world-menu" aria-expanded="false" aria-controls="world-links" aria-label="Open navigation">☰</button><nav id="world-links" aria-label="Main navigation">
+                <a href="index.html" data-nav-page="home">Home</a>
+                <a href="about.html" class="mobile-nav-only" data-nav-page="about"><span>About</span></a>
+                <a href="projects.html" aria-current="page" data-nav-page="projects">Projects</a>
+                <a href="events.html" data-nav-page="events">Events</a>
+                <a href="team.html" data-nav-page="team">Team</a>
+                <a href="join.html" class="desktop-nav-only nav-join" data-member-cta><span data-cta-label>Join the lab ↗</span></a>
+                <a href="/account" class="mobile-nav-only" data-mobile-guest="signin"><span>Sign in</span></a>
+                <a href="join.html" class="mobile-nav-only" data-mobile-guest="join"><span>Join CYGNUS</span></a>
+            </nav></header>
   <main id="main" class="project-detail-main">
     <a class="project-back mono" href="projects.html#lab-index">← ALL PROJECTS</a>
     <div id="project-message" role="status" hidden><h1>Loading project…</h1></div>
