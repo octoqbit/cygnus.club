@@ -89,7 +89,7 @@
 }
 
 .home-about-link {
-    display: inline-flex;
+    display: none;
     align-items: center;
     gap: 16px;
     align-self: flex-start;
