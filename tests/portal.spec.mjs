@@ -60,6 +60,32 @@ async function mock(page,{role='admin',signedIn=false,status='approved',empty=fa
   return state;
 }
 
+test('approved members can open the merchandise coming-soon message', async ({page}, info) => {
+  const state = await mock(page, {role:'member', signedIn:true});
+  await page.goto('/account');
+  const merchandise = page.getByRole('region', {name:'CYGNUS merchandise'});
+  await expect(merchandise).toBeVisible();
+  await expect(merchandise.getByRole('status')).toHaveCount(0);
+  await merchandise.getByRole('button', {name:'Get merchandise'}).click();
+  await expect(merchandise.getByRole('status')).toContainText('CYGNUS merchandise is coming soon.');
+  await merchandise.screenshot({path:info.outputPath('merchandise-desktop.png')});
+  await page.setViewportSize({width:375,height:812});
+  await merchandise.scrollIntoViewIfNeeded();
+  expect(await merchandise.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await merchandise.screenshot({path:info.outputPath('merchandise-mobile.png')});
+  expect(state.calls.filter(call => call.method === 'POST')).toEqual([]);
+});
+
+test('merchandise appears only after membership approval', async ({page}) => {
+  const state = await mock(page, {role:'member', signedIn:true, status:'pending'});
+  for (const status of ['pending', 'rejected', 'suspended', 'approved']) {
+    state.profile.status = status;
+    await page.goto('/account');
+    await expect(page.getByRole('heading', {name:'Hello, Jamie.'})).toBeVisible();
+    await expect(page.getByRole('button', {name:'Get merchandise'})).toHaveCount(status === 'approved' ? 1 : 0);
+  }
+});
+
 test('admin login is clean on desktop and mobile; non-admin login is rejected',async({page},info)=>{
   await mock(page,{role:'member'});await page.goto('/admin');
   await expect(page.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
@@ -71,8 +97,15 @@ test('admin login is clean on desktop and mobile; non-admin login is rejected',a
 });
 
 test('admin publishes, edits, unpublishes and removes a homepage memory',async({page},info)=>{
-  const state=await mock(page,{signedIn:true});await page.goto('/admin');
-  await page.getByRole('button',{name:'Memories',exact:true}).click();
+  const state=await mock(page,{signedIn:true});
+  const openMemories = async () => {
+    await page.goto('/admin');
+    await expect(page.locator('.admin-shell')).toBeVisible();
+    const menu = page.getByRole('button', {name:'Open admin navigation'});
+    if (await menu.isVisible()) await menu.click();
+    await page.getByRole('button', {name:'Memories', exact:true}).click();
+  };
+  await openMemories();
   await page.getByRole('button',{name:'Add memory'}).click();
   await page.route('**/storage/v1/object/content-images/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({Key:'content-images/memory.jpg'})}));
   await page.route('**/storage/v1/object/public/content-images/**',route=>route.fulfill({path:'about-assets/ai_hackathon.jpg',contentType:'image/jpeg'}));
@@ -87,14 +120,14 @@ test('admin publishes, edits, unpublishes and removes a homepage memory',async({
   await expect(page.getByRole('status')).toHaveText('Memory saved as a draft.');
   await page.goto('/');await expect(page.locator('.memories-empty')).toBeVisible();
   await expect(page.locator('[data-event-carousel]')).toHaveCount(1);
-  await page.goto('/admin');await page.getByRole('button',{name:'Memories',exact:true}).click();
+  await openMemories();
   await page.getByRole('button',{name:'Edit',exact:true}).click();
   await page.getByLabel('Publish on homepage').check();
   await page.getByRole('button',{name:'Save memory'}).click();
   await expect(page.getByRole('status')).toHaveText('Memory published to Life at CYGNUS.');
   await page.goto('/');await expect(page.locator('.memory-showcase-title')).toHaveText('Our first build night');
   await expect(page.locator('.memory-showcase-caption')).toHaveText('One circuit. Many ideas.');
-  await page.goto('/admin');await page.getByRole('button',{name:'Memories',exact:true}).click();
+  await openMemories();
   await page.getByRole('button',{name:'Edit',exact:true}).click();
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:info.outputPath('memory-editor-mobile.png'),fullPage:true});
@@ -102,7 +135,7 @@ test('admin publishes, edits, unpublishes and removes a homepage memory',async({
   await page.getByLabel('Caption',{exact:true}).fill('The edited story.');await page.getByLabel('Publish on homepage').uncheck();
   await page.getByRole('button',{name:'Save memory'}).click();await expect.poll(()=>state.memories[0].caption).toBe('The edited story.');
   await page.goto('/');await expect(page.locator('.memories-empty')).toBeVisible();
-  await page.goto('/admin');await page.getByRole('button',{name:'Memories',exact:true}).click();await page.getByRole('button',{name:'Edit',exact:true}).click();
+  await openMemories();await page.getByRole('button',{name:'Edit',exact:true}).click();
   page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Delete memory'}).click();await expect.poll(()=>state.memories.length).toBe(0);
 });
 
@@ -119,6 +152,7 @@ for(const width of [390,1440])test(`memories showcase and corner peel work at ${
   const viewer = page.getByRole('dialog',{name:'Build moment 1'});
   await expect(page.locator('#memory-viewer')).not.toBeVisible();
   await expect(page.locator('#memories-title')).toHaveText('Moments atCYGNUS.');
+  await expect(page.getByRole('dialog', {name:'Welcome to CYGNUS'})).toHaveCount(0);
   await opener.focus();
   await page.keyboard.press('Enter');
   await expect(viewer).toBeVisible();
@@ -345,15 +379,23 @@ test('empty database never resurrects deleted items and mobile admin has no over
   await page.setViewportSize({width:390,height:844});await page.goto('/admin');await expect(page.getByRole('heading',{name:'Your club, at a glance.'})).toBeVisible();await expect(page.locator('body')).toHaveJSProperty('scrollWidth',390);await page.screenshot({path:info.outputPath('admin-mobile.png'),fullPage:true});
 });
 test('CMS text hooks resolve to the intended text without replacing child markup',async({page})=>{
+  // These three homepage labels were intentionally cleared by the owner.
   await mock(page);for(const [path,prefix] of [['/','home-'],['/projects.html','projects-']]){
     await page.goto(path);await page.waitForLoadState('networkidle');
-    const errors=await page.evaluate(slots=>slots.filter(s=>s.selector).flatMap(s=>{const el=document.querySelector(s.selector);if(!el)return [s.id+' missing'];if(s.type==='image')return [];const text=[...el.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE)[s.part];return text?.textContent.trim().replace(/\s+/g,' ')===s.default?[]:[s.id+' incorrect text'];}),slots.filter(s=>s.id.startsWith(prefix)));
+    const errors=await page.evaluate(slots=>slots.filter(s=>s.selector).flatMap(s=>{const el=document.querySelector(s.selector);if(!el)return [s.id+' missing'];if(s.type==='image')return [];const text=[...el.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE)[s.part];return (text?.textContent||'').trim().replace(/\s+/g,' ')===s.default?[]:[s.id+' incorrect text'];}),slots.filter(s=>s.id.startsWith(prefix)).map(s=>['home-001-0','home-002-0','home-007-0'].includes(s.id)?{...s,default:''}:s));
     expect(errors).toEqual([]);
   }
 });
 
 test('applications collect a chosen password and emoji without requesting admin privileges',async({page})=>{
   const state=await mock(page);await page.goto('/join.html');
+  const password = page.getByLabel('Choose your password');
+  await password.fill('a-long-test-password');
+  await page.getByRole('button', {name:'Show password', exact:true}).click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await expect(password).toHaveValue('a-long-test-password');
+  await page.getByRole('button', {name:'Hide password', exact:true}).click();
+  await expect(password).toHaveAttribute('type', 'password');
   await page.getByLabel('First Name').fill('Sam');await page.getByLabel('Last Name').fill('Maker');await page.getByLabel('Mobile number',{exact:true}).fill('9876543210');await expect(page.getByLabel('Mobile number',{exact:true})).toHaveValue('98765 43210');await expect(page.locator('.mobile-prefix')).toHaveText('+91');await page.getByLabel('Email',{exact:true}).fill('sam@example.test');await page.getByLabel('Department',{exact:true}).selectOption('cs');await page.getByLabel('Year of Study').selectOption('2');await page.getByLabel('Why do you want to join CYGNUS?').fill('I want to learn robotics.');await page.getByLabel('Choose your password').fill('a-long-test-password');await page.getByRole('radio',{name:'She/Her',exact:true}).check();await page.getByRole('radio',{name:'Satellite',exact:true}).check();await page.getByRole('button',{name:'SUBMIT APPLICATION'}).click();
   await expect(page.getByRole('status')).toContainText('Open the confirmation link');
   const signup=state.calls.find(c=>c.path.endsWith('/signup')).body;
@@ -525,8 +567,14 @@ for (const width of [390,1440]) test(`team names reveal contact details inside t
 test('admin can publish, edit, move and remove public team people',async({page},info)=>{
   const state=await mock(page,{signedIn:true});
   state.values.unrelated_setting='keep me';
-  await page.goto('/admin');
-  await page.getByRole('button',{name:'Team',exact:true}).click();
+  const openTeam = async () => {
+    await page.goto('/admin');
+    await expect(page.locator('.admin-shell')).toBeVisible();
+    const menu = page.getByRole('button', {name:'Open admin navigation'});
+    if (await menu.isVisible()) await menu.click();
+    await page.getByRole('button', {name:'Team', exact:true}).click();
+  };
+  await openTeam();
   await page.getByRole('button',{name:'Add person',exact:true}).click();
   await page.getByLabel('Full name',{exact:true}).fill('Avery Test');
   await page.getByLabel('Public email (optional)',{exact:true}).fill('avery@example.test');
@@ -552,7 +600,7 @@ test('admin can publish, edit, move and remove public team people',async({page},
   expect(JSON.parse(state.values[id]).linkedin).toBe('https://www.linkedin.com/in/avery-test/');
   await page.goto('/team.html');await page.getByRole('button',{name:'Meet the Builders',exact:true}).click();
   await expect(page.getByRole('button',{name:'Avery Test',exact:true})).toBeVisible();
-  await page.goto('/admin');await page.getByRole('button',{name:'Team',exact:true}).click();
+  await openTeam();
   await page.getByRole('button',{name:'Edit',exact:true}).click();
   await page.getByLabel('Team category',{exact:true}).selectOption('design');
   await page.getByLabel('Public email (optional)',{exact:true}).fill('design@example.test');
@@ -564,7 +612,7 @@ test('admin can publish, edit, move and remove public team people',async({page},
   await page.getByRole('button',{name:'Meet the Shapers',exact:true}).click();
   await page.getByRole('button',{name:'Avery Test',exact:true}).click();
   await expect(page.getByRole('link',{name:'design@example.test',exact:true})).toBeVisible();
-  await page.goto('/admin');await page.getByRole('button',{name:'Team',exact:true}).click();
+  await openTeam();
   await page.getByRole('button',{name:'Edit',exact:true}).click();
   page.once('dialog',dialog=>dialog.accept());
   await page.getByRole('button',{name:'Remove person',exact:true}).click();
@@ -661,8 +709,11 @@ async function scanMemberQR(page) {
   await expect(image).toBeVisible();
   const pixels=await image.evaluate(async img=>{
     await img.decode();
-    const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
-    const context=canvas.getContext('2d');context.drawImage(img,0,0);
+    // Decode the complete card at a realistic display size without transferring
+    // millions of full-resolution pixels through the browser test protocol.
+    const scale=Math.min(1,700/img.naturalHeight);
+    const canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
+    const context=canvas.getContext('2d');context.drawImage(img,0,0,canvas.width,canvas.height);
     return {data:Array.from(context.getImageData(0,0,canvas.width,canvas.height).data),width:canvas.width,height:canvas.height};
   });
   return jsQR(new Uint8ClampedArray(pixels.data),pixels.width,pixels.height)?.data;
@@ -673,15 +724,20 @@ test('member mobile numbers and downloaded QR codes use saved details at mobile 
   await page.setViewportSize({width:390,height:844});await page.goto('/account');
   await expect(page.getByLabel('Mobile number',{exact:true})).toHaveValue('98765 43210');
   expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
+  const originalCard = await page.locator('.member-id-front').getAttribute('src');
   expect(await page.getByLabel('Mobile number',{exact:true})).toBeDisabled();
   await page.getByLabel('Name',{exact:true}).fill('Jamie Updated');
   await page.getByRole('button',{name:'Save profile',exact:true}).click();
   await expect(page.getByRole('status')).toContainText('Profile updated.');
   expect(state.profile.mobile_number).toBe('+919876543210');
   expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
+  await expect(page.locator('.member-id-front')).toHaveAttribute('alt', /Jamie Updated.*CLUB MEMBER/);
+  expect(await page.locator('.member-id-front').getAttribute('src')).not.toBe(originalCard);
   const download=page.waitForEvent('download');
-  await page.getByRole('link',{name:'Download QR code'}).click();
-  expect((await download).suggestedFilename()).toBe('CYG-CS-001-QR.png');
+  await page.getByRole('link',{name:'Download member card'}).click();
+  const cardDownload = await download;
+  expect(cardDownload.suggestedFilename()).toBe('CYG-CS-001-card.png');
+  await cardDownload.saveAs(info.outputPath('downloaded-member-card.png'));
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth',390);
   await page.screenshot({path:info.outputPath('member-mobile-qr.png'),fullPage:true});
 });
@@ -726,3 +782,47 @@ test('OAuth application requires and saves a mobile number; suspended members ha
   state.profile.status='suspended';await page.reload();
   await expect(page.getByRole('region',{name:'Member QR card'})).toHaveCount(0);
 });
+
+for (const [role, label] of [['member', 'CLUB MEMBER'], ['core_member', 'CORE MEMBER'], ['admin', 'CLUB ADMIN']]) {
+  test(`front card uses the correct ${role} label and a scannable QR`, async ({page}, info) => {
+    await mock(page, {role, signedIn:true});
+    await page.goto('/account');
+    const card = page.locator('.member-id-front');
+    await expect(card).toBeVisible();
+    await expect(card).toHaveAttribute('alt', new RegExp(label));
+    expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
+    await card.screenshot({path:info.outputPath(`${role}-card.png`)});
+  });
+}
+
+for (const [path, role, heading] of [['/account', 'member', 'Hello, Jamie.'], ['/admin', 'admin', 'Your club, at a glance.']]) {
+  test(`${role} portal remembers dark mode and keeps controls usable`, async ({page}, info) => {
+    await mock(page, {role, signedIn:true});
+    await page.goto(path);
+    await expect(page.getByRole('heading', {name:heading})).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-portal-theme', 'light');
+    await page.getByRole('button', {name:'Dark mode', exact:true}).click();
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(16, 21, 19)');
+    await page.reload();
+    await expect(page.getByRole('button', {name:'Light mode', exact:true})).toBeVisible();
+    if (role === 'member') {
+      await page.getByRole('button', {name:'Get merchandise'}).click();
+      await expect(page.getByRole('status')).toContainText('CYGNUS merchandise is coming soon.');
+      expect(await scanMemberQR(page)).toContain('CYGNUS-MEMBER|CYG-CS-001|');
+    } else {
+      await page.getByRole('button', {name:'Members', exact:true}).click();
+      await expect(page.getByRole('heading', {name:'Members', exact:true})).toBeVisible();
+    }
+    await page.screenshot({path:info.outputPath(`${role}-dark-desktop.png`), fullPage:true});
+    await page.setViewportSize({width:390,height:844});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    // Let the responsive sidebar finish moving before checking its appearance.
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({path:info.outputPath(`${role}-dark-mobile.png`)});
+    if (role === 'member') await page.locator('.member-qr').screenshot({path:info.outputPath('member-dark-card.png')});
+    await page.getByRole('button', {name:'Light mode', exact:true}).click();
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-portal-theme', 'light');
+  });
+}

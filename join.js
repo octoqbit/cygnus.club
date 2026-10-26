@@ -8,6 +8,16 @@ import './avatars.css';
 import { techEmojis, profilePronouns } from './lib/profile-options.mjs';
 
 const form=document.querySelector('.join-form');
+const passwordInput=form.elements.password;
+const passwordToggle=form.querySelector('.join-password-toggle');
+function setPasswordVisible(visible){
+  passwordInput.type=visible?'text':'password';
+  passwordToggle.textContent=visible?'Hide':'Show';
+  passwordToggle.setAttribute('aria-label',visible?'Hide password':'Show password');
+}
+passwordToggle.hidden=false;
+passwordToggle.addEventListener('click',()=>setPasswordVisible(passwordInput.type==='password'));
+form.addEventListener('reset',()=>setPasswordVisible(false));
 const mobileInput=form.elements.mobile_number;
 mobileInput.addEventListener('input',()=>maskMobileInput(mobileInput));
 const emojiChoices=document.getElementById('join-emojis');

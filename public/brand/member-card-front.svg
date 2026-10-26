@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1560" viewBox="0 0 1000 1560">
+  <defs>
+    <linearGradient id="paper" x2="1" y2="1"><stop stop-color="#fcfbf6"/><stop offset="1" stop-color="#e8e7e1"/></linearGradient>
+    <linearGradient id="graphite" x2="1" y2="1"><stop stop-color="#252729"/><stop offset=".35" stop-color="#080909"/><stop offset=".7" stop-color="#050606"/><stop offset="1" stop-color="#292b2d"/></linearGradient>
+    <linearGradient id="silver" x2="1" y2="1"><stop stop-color="#dbdcd9"/><stop offset=".4" stop-color="#585b5c"/><stop offset=".7" stop-color="#bfc1be"/><stop offset="1" stop-color="#fafbf6"/></linearGradient>
+    <linearGradient id="red" x2="1" y2="1"><stop stop-color="#fc1420"/><stop offset=".5" stop-color="#df000b"/><stop offset="1" stop-color="#690008"/></linearGradient>
+    <clipPath id="card"><rect x="8" y="8" width="984" height="1544" rx="60"/></clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <path fill="url(#paper)" d="M0 0h1000v1560H0z"/>
+    <path fill="url(#graphite)" d="M0 0h1000v1090L755 835H90L0 740Z"/>
+    <path fill="#ffffff05" d="M0 200 200 0h82L0 282ZM635 0h365v208L800 0Z"/>
+    <path fill="#0009" d="M0 290 290 0h65L0 355Z"/>
+    <path fill="url(#red)" d="M0 290 130 160h62L0 352Z"/>
+    <path stroke="#f00c19" stroke-width="6" d="m180 162 100-100"/>
+    <path fill="none" stroke="url(#silver)" stroke-width="3" d="M0 385 150 235M285 60l58-60M460 235l120-120h275L970 0M1000 390 860 250V150L1000 10"/>
+    <path stroke="#f00c19" stroke-width="7" d="M795 150h48M964 455v95"/>
+    <path fill="none" stroke="#737779" stroke-width="2" opacity=".4" d="M0 740 110 635h180M965 390v210l35 35"/>
+    <path fill="#181b1c" d="m840 925 160-165v330Z"/>
+    <path fill="#ffffff09" d="m880 968 120-125v58L908 998Z"/>
+    <path fill="none" stroke="url(#silver)" stroke-width="4" d="M0 740 90 835h665l245 255"/>
+    <path fill="url(#red)" d="m920 1005 80 85v150l-80-90Z"/>
+    <path fill="#090b0d" d="m950 1038 50 52v150l-50-54Z"/>
+    <path fill="none" stroke="#d4d4ce" stroke-width="3" d="M0 950 62 1012v130M860 1010 640 1230v130l-65 70M0 1300l125 125"/>
+    <path fill="#ffffff50" d="m700 1230 130-130 70 70-130 130Z"/>
+    <path fill="url(#red)" d="M36 1420h108l44 43H80Z"/>
+    <path fill="url(#graphite)" d="m0 1350 120 115h310l95 95H0Z"/>
+    <path fill="url(#silver)" d="m0 1415 125 145H0Z"/>
+    <path fill="#0009" d="m70 1435 120 125h80l-91-95h-59Z"/>
+    <path stroke="#b6000d" stroke-width="4" d="m245 1500 58 60"/>
+    <path fill="none" stroke="url(#silver)" stroke-width="4" d="m460 1465 58 60h375l56-58v-65"/>
+    <path stroke="#f5101a" stroke-width="5" d="M762 1525h40"/>
+    <path stroke="#8f9391" stroke-width="4" d="M108 792h465l28 23"/>
+    <path stroke="#f60012" stroke-width="5" d="M108 792h150"/>
+    <path fill="#f60012" d="m606 790 25 25h25l-25-25Z"/>
+  </g>
+  <rect x="8" y="8" width="984" height="1544" rx="60" fill="none" stroke="url(#silver)" stroke-width="7"/>
+</svg>

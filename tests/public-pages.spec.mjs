@@ -41,7 +41,8 @@ for (const width of [375,1440]) {
       await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href','/cygnus-favicon.svg');
       if (['index','events','projects','team','account','admin'].includes(path)) await page.screenshot({path:info.outputPath(`${path}-${width}.png`)});
       if(path==='index') {
-        await expect(page.locator('[data-cms="home-001"]')).toHaveText('CYGNUS');
+        // Preserve the owner's intentionally empty homepage label.
+        await expect(page.locator('[data-cms="home-001"]')).toHaveText('');
         const robot=page.frameLocator('iframe[title="CYGNUS robot assembly"]');
         await expect(robot.locator('.cygnus-chip-wordmark')).toHaveAttribute('aria-label','CYGNUS');
         await expect(robot.locator('.cygnus-chip-wordmark image')).toHaveAttribute('href','../brand/cygnus-dark-web.webp');

@@ -7,13 +7,20 @@ async function home(page) {
     await expect(page.getByRole('button', { name: 'Dark mode', exact: true })).toBeVisible();
 }
 
-test('homepage always starts light, even after a saved dark preference or reload', async ({ page }) => {
+test('new visitors start light and their chosen theme survives refreshes and return visits', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-    await page.addInitScript(() => localStorage.setItem('cygnus-home-theme', 'dark'));
     await home(page);
+    await expect(page.locator('.home-gradient-background')).toHaveCount(1);
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(237, 236, 232)');
     await page.getByRole('button', { name: 'Dark mode', exact: true }).click();
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(9, 10, 12)');
+    await page.reload();
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(9, 10, 12)');
+    await expect(page.getByRole('button', { name: 'Light mode', exact: true })).toBeVisible();
+    await page.goto('/about.html');
+    await page.goto('/index.html');
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(9, 10, 12)');
+    await page.getByRole('button', { name: 'Light mode', exact: true }).click();
     await page.reload();
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(237, 236, 232)');
     await expect(page.getByRole('button', { name: 'Dark mode', exact: true })).toBeVisible();

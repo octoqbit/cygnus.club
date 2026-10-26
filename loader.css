@@ -1,102 +1,181 @@
-/* Global Loader Styles */
-#sac-global-loader {
+/* Self-contained entrance; the site's theme and layout are never restyled. */
+.cygnus-entry {
+    --entry-accent: #ff6a13;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: var(--text-color, #111111);
-    z-index: 99999;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    background: transparent;
+    color: #f0f0e9;
+    font: 11px/1.5 var(--font-mono, monospace);
+    letter-spacing: .12em;
+}
+.cygnus-entry::backdrop { background: transparent; }
+.cygnus-entry::before,
+.cygnus-entry::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 50%;
+    z-index: -1;
+    background: #090d10;
+    transition: transform 1s cubic-bezier(.76, 0, .24, 1);
+}
+.cygnus-entry::after { inset: 50% 0 0; }
+.cygnus-entry-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, #ff6a1310, transparent 65%),
+        linear-gradient(#8caca710 1px, transparent 1px),
+        linear-gradient(90deg, #8caca710 1px, transparent 1px);
+    background-size: auto, 56px 56px, 56px 56px;
+    mask-image: radial-gradient(ellipse at center, #000, #0005);
+}
+.cygnus-entry-top,
+.cygnus-entry-bottom {
+    position: absolute;
+    inset: max(28px, env(safe-area-inset-top)) 4vw auto;
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    color: #94a09f;
+}
+.cygnus-entry-top > span:first-child { color: #e6e9df; }
+.cygnus-entry-top i {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 10px;
+    background: var(--entry-accent);
+    box-shadow: 0 0 16px #ff6a1380;
+}
+.cygnus-entry-bottom { inset: auto 4vw max(24px, env(safe-area-inset-bottom)); }
+.cygnus-entry-core {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1), opacity 0.8s ease-in-out;
-    color: var(--accent-orange, #ff6a13);
-    font-family: var(--font-mono, 'Space Mono', monospace);
-    overflow: hidden;
 }
-
-.sac-loader-bg {
+.cygnus-entry-orbits {
     position: absolute;
-    top: 0;
-    left: 0;
+    width: min(64vw, 70vh, 660px);
+    aspect-ratio: 1;
+    opacity: .65;
+    animation: entry-materialize .8s ease-out both;
+}
+.cygnus-entry-orbits i {
+    position: absolute;
+    inset: 0;
+    border: 1px solid #7c98913d;
+    border-top: 2px solid var(--entry-accent);
+    border-bottom: 2px solid var(--entry-accent);
+    border-radius: 50%;
+    animation: entry-orbit 7s linear infinite;
+}
+.cygnus-entry-orbits i:nth-child(2) {
+    inset: 5%;
+    border: 1px dashed #9ab5af70;
+    animation-direction: reverse;
+    animation-duration: 18s;
+}
+.cygnus-entry-orbits i:nth-child(3) {
+    inset: 16%;
+    border-color: #ff6a131a;
+    border-left-color: var(--entry-accent);
+    border-right-color: var(--entry-accent);
+    animation-duration: 4s;
+}
+.cygnus-entry-orbits b { position: absolute; top: 50%; left: -24px; color: var(--entry-accent); font-size: 18px; }
+.cygnus-entry-orbits b:last-child { left: auto; right: -24px; }
+.cygnus-entry-circuits {
+    position: absolute;
     width: 100%;
-    height: 100%;
-    background-image: 
-        linear-gradient(rgba(255, 106, 19, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 106, 19, 0.05) 1px, transparent 1px);
-    background-size: 30px 30px;
-    opacity: 0.5;
+    max-height: 60vh;
+    stroke: var(--entry-accent);
+    stroke-width: 1;
+    opacity: .5;
+    stroke-dasharray: 600;
+    animation: entry-connect 1.4s ease-out both;
 }
-
-.sac-loader-content {
-    position: relative;
-    z-index: 2;
-    width: 80%;
-    max-width: 600px;
-    border: 1px solid var(--accent-orange, #ff6a13);
-    padding: 2rem;
-    background: rgba(17, 17, 17, 0.9);
-    box-shadow: 0 0 20px rgba(255, 106, 19, 0.2);
+.cygnus-entry-circuits path:nth-child(2) { stroke: #85c7c7; opacity: .5; }
+.cygnus-entry-kicker,
+.cygnus-entry-wordmark,
+.cygnus-entry-status { position: relative; }
+.cygnus-entry-kicker {
+    margin: 0 0 22px;
+    color: var(--entry-accent);
+    font-size: 10px;
+    letter-spacing: .28em;
+    animation: entry-materialize .6s ease-out both;
 }
-
-.sac-loader-header {
+.cygnus-entry-wordmark {
+    font: 900 clamp(60px, 14vw, 210px)/1 var(--font-heading, sans-serif);
+    letter-spacing: -.045em;
+    min-width: 6ch;
+    text-align: center;
+    text-shadow: 3px 0 #ff6a134d, -3px 0 #85c7c733;
+    transition: text-shadow .4s, color .4s;
+}
+.cygnus-entry.is-locked .cygnus-entry-wordmark { text-shadow: 0 0 55px #ff6a1326; color: #fffdf4; }
+.cygnus-entry-status {
     display: flex;
+    gap: 32px;
     justify-content: space-between;
-    border-bottom: 1px solid var(--accent-orange, #ff6a13);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    width: min(360px, 80vw);
+    margin-top: 28px;
+    padding-top: 14px;
+    border-top: 1px solid #62716d55;
+    color: #a7b9b3;
+    font-size: 9px;
 }
-
-.sac-loader-terminal {
-    font-size: 1.2rem;
-    min-height: 2em;
-    margin-bottom: 30px;
-    text-transform: uppercase;
-}
-
-.sac-loader-terminal::after {
-    content: '_';
-    animation: sac-blink 1s infinite;
-}
-
-.sac-loader-bar {
-    width: 100%;
-    height: 4px;
-    background: rgba(255, 106, 19, 0.2);
-    position: relative;
-    overflow: hidden;
-}
-
-.sac-loader-progress {
+.cygnus-entry-pulse { color: var(--entry-accent); letter-spacing: 4px; }
+.cygnus-entry-seam {
     position: absolute;
-    top: 0;
+    top: 50%;
     left: 0;
-    height: 100%;
-    width: 0%;
-    background: var(--accent-orange, #ff6a13);
-    box-shadow: 0 0 10px var(--accent-orange, #ff6a13);
-    transition: width 0.3s ease;
+    width: 100%;
+    height: 1px;
+    background: var(--entry-accent);
+    box-shadow: 0 0 20px #ff6a1366;
+    transform: scaleX(0);
+    pointer-events: none;
 }
-
-#sac-global-loader.loader-hidden {
-    transform: translateY(-100%);
-    opacity: 0;
+.cygnus-entry-core,
+.cygnus-entry-grid,
+.cygnus-entry-top,
+.cygnus-entry-bottom { transition: opacity .35s ease, transform .6s ease; }
+.cygnus-entry.is-revealing .cygnus-entry-core { opacity: 0; transform: scale(1.08); }
+.cygnus-entry.is-revealing .cygnus-entry-grid,
+.cygnus-entry.is-revealing .cygnus-entry-top,
+.cygnus-entry.is-revealing .cygnus-entry-bottom { opacity: 0; }
+.cygnus-entry.is-revealing::before { transform: translateY(-101%); }
+.cygnus-entry.is-revealing::after { transform: translateY(101%); }
+.cygnus-entry.is-revealing .cygnus-entry-seam { animation: entry-seam .8s ease-out both; }
+@keyframes entry-orbit { to { transform: rotate(360deg); } }
+@keyframes entry-connect { from { stroke-dashoffset: 600; } to { stroke-dashoffset: 0; } }
+@keyframes entry-materialize { from { opacity: 0; transform: scale(.88); } }
+@keyframes entry-seam { 0% { transform: scaleX(0); } 35% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@media (max-width: 600px) {
+    .cygnus-entry-top { font-size: 8px; gap: 12px; }
+    .cygnus-entry-top > span:last-child { max-width: 95px; text-align: right; }
+    .cygnus-entry-bottom { font-size: 8px; }
+    .cygnus-entry-orbits { width: 82vw; }
+    .cygnus-entry-kicker { font-size: 8px; letter-spacing: .15em; }
+    .cygnus-entry-wordmark { font-size: 16vw; }
+    .cygnus-entry-status { font-size: 8px; gap: 8px; }
 }
-
-@keyframes sac-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-}
-
-@keyframes glitch-in {
-    0% { transform: translate(-5px, 5px); text-shadow: -2px 0 red, 2px 0 blue; opacity: 0; }
-    20% { transform: translate(5px, -5px); text-shadow: 2px 0 red, -2px 0 blue; }
-    40% { transform: translate(-5px, 5px); text-shadow: -2px 0 red, 2px 0 blue; }
-    60% { transform: translate(5px, -5px); text-shadow: 2px 0 red, -2px 0 blue; }
-    80% { transform: translate(-2px, 2px); text-shadow: -1px 0 red, 1px 0 blue; }
-    100% { transform: translate(0, 0); text-shadow: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+    .cygnus-entry { display: none; }
+    .cygnus-entry *, .cygnus-entry::before, .cygnus-entry::after { animation: none; transition: none; }
 }

@@ -1,0 +1,59 @@
+.portal-theme-toggle {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 1090;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 10px 15px;
+    border: 1px solid #cbd6cd;
+    border-radius: 9px;
+    background: #fff;
+    color: #30543d;
+    box-shadow: 0 4px 18px #10221818;
+    font-size: 12px;
+    font-weight: 600;
+}
+html[data-portal-theme=dark] { color-scheme: dark; background: #101513; }
+[data-portal-theme=dark] body { background: #101513; color: #e6ede7; }
+[data-portal-theme=dark] :is(.panel, .sidebar, .admin-topbar, .stat-card, .auth-main, .quick-link, .admin-menu-toggle) {
+    background: #19211d; color: #e6ede7; border-color: #35443a;
+}
+[data-portal-theme=dark] :is(input, textarea, select, .secondary, .page-selector button, .avatar-picker label, .portal-theme-toggle) {
+    background: #202b24; color: #e2ece4; border-color: #45584a;
+}
+[data-portal-theme=dark] input::placeholder,
+[data-portal-theme=dark] textarea::placeholder { color: #99aa9c; }
+[data-portal-theme=dark] :is(input, textarea, select):disabled { color: #aebeb1; opacity: .8; }
+[data-portal-theme=dark] :is(.mobile-input .mobile-prefix, .review-box, th, .avatar-small, .member-avatar) {
+    background: #24322a; color: #d2e0d5; border-color: #45584a;
+}
+[data-portal-theme=dark] :is(.muted, .small-note, .field > span, .avatar-picker legend, .sidebar-label, .sidebar nav button, .sidebar-bottom a, .admin-topbar, .page-heading p, .stat-card > div, .stat-card small, .panel-heading p, .welcome-card p, td small, .empty, .review-box p, .member-list-row small, .auth-foot, .auth-divider, .loading) { color: #adbdaf; }
+[data-portal-theme=dark] :is(.eyebrow, .text-button, .quick-link span, .admin-topbar strong) { color: #b9d7bd; }
+[data-portal-theme=dark] .primary { background: #9ac9a3; color: #112619; }
+[data-portal-theme=dark] .primary:hover { background: #b0dcba; }
+[data-portal-theme=dark] :is(.secondary:hover, .sidebar nav button:hover) { background: #2c3b31; }
+[data-portal-theme=dark] :is(.sidebar nav button[aria-current=page], .avatar-picker label.selected, .page-selector button[aria-pressed=true]) { background: #304d39; color: #dcf2df; border-color: #7aa782; }
+[data-portal-theme=dark] :is(.welcome-card, .notice) { background: #233a2a; color: #c5e3c5; border-color: #42644a; }
+[data-portal-theme=dark] :is(.notice-error, .danger) { background: #452729; color: #ffc5bf; border-color: #825153; }
+[data-portal-theme=dark] .badge { background: #2b4430; color: #c5e9b8; }
+[data-portal-theme=dark] :is(.badge.pending, .badge.draft) { background: #443b25; color: #f4d78b; }
+[data-portal-theme=dark] :is(.badge.rejected, .badge.suspended) { background: #482b2c; color: #ffc0b7; }
+[data-portal-theme=dark] .badge.admin { background: #33364e; color: #d1d4ff; }
+[data-portal-theme=dark] :is(td, th, .member-list-row, .sidebar-bottom) { border-color: #35443a; }
+[data-portal-theme=dark] .editor-actions { background: #101513ed; }
+[data-portal-theme=dark] .auth-story { background: #14251c; }
+[data-portal-theme=dark] .auth-divider::before,
+[data-portal-theme=dark] .auth-divider::after { background: #35443a; }
+[data-portal-theme=dark] .cygnus-name { background-image: url('/brand/cygnus-dark-web.webp'); background-position: 48.986% 70.938%; mix-blend-mode: screen; }
+[data-portal-theme=dark] .cygnus-descriptor { color: #cad5cc; }
+[data-portal-theme=dark] .member-qr .member-id-front { filter: drop-shadow(0 8px 14px #0005); }
+[data-portal-theme=dark] .emoji-picker .emoji-choices label:has(input:checked) { background: #304d39; color: #dcf2df; border-color: #7aa782; }
+[data-portal-theme=dark] .scanner-result { background: #233a2a; border-color: #42644a; }
+[data-portal-theme=dark] .scanner-result strong { color: #b9e4c5; }
+[data-portal-theme=dark] .scanner-result dt { color: #adbdaf; }
+@media (max-width: 600px) {
+    .portal-theme-toggle { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 10px 12px; }
+}

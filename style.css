@@ -1901,6 +1901,40 @@ a.footer-social-link:hover {
     letter-spacing: 1px;
 }
 
+.join-password-field {
+    position: relative;
+    min-width: 0;
+}
+
+.join-form .join-password-field input {
+    width: 100%;
+    padding-right: 4.5rem;
+}
+
+.join-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 5px;
+    transform: translateY(-50%);
+    min-width: 56px;
+    min-height: 44px;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    color: var(--text-color);
+    font: 700 12px var(--font-mono);
+    cursor: pointer;
+}
+
+.join-password-toggle:hover {
+    text-decoration: underline;
+}
+
+.join-password-toggle:focus-visible {
+    outline: 2px solid var(--accent-orange);
+    outline-offset: -2px;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {

@@ -224,8 +224,12 @@
 
                         <div class="form-group">
                             <label for="password">Choose your password</label>
-                            <input id="password" name="password" type="password" minlength="12" required
-                                autocomplete="new-password" placeholder="At least 12 characters">
+                            <div class="join-password-field">
+                                <input id="password" name="password" type="password" minlength="12" required
+                                    autocomplete="new-password" placeholder="At least 12 characters">
+                                <button class="join-password-toggle" type="button" aria-controls="password"
+                                    aria-label="Show password" hidden>Show</button>
+                            </div>
                             <p style="font-size:12px;line-height:1.6;margin-top:10px">Your email is your login ID. After
                                 admin approval, your member ID and full access appear in your account.</p>
                         </div>

@@ -1,0 +1,12 @@
+.member-qr .member-id-front {
+    display: block;
+    width: min(100%, 380px);
+    height: auto;
+    margin: 0 auto 24px;
+    border-radius: 22px;
+    image-rendering: auto;
+    filter: drop-shadow(0 8px 14px #10131725);
+}
+.member-qr > .panel-heading > svg { color: #c71825; }
+.member-qr > .secondary { max-width: 380px; display: flex; margin-inline: auto; }
+.member-qr > .small-note { max-width: 380px; margin: 14px auto 0; }

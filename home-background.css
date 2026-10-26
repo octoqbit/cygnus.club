@@ -1,0 +1,23 @@
+/* Decorative background only: no content, typography, or geometry changes. */
+.home-page .hero-main {
+    isolation: isolate;
+}
+
+.home-page .home-gradient-background {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Replace the old angular background decoration with the flowing halftone. */
+[data-home-theme=dark] .home-page .hero-main {
+    background: var(--bg-color);
+}
+
+[data-home-theme=dark] .home-page .hero-main::before,
+[data-home-theme=dark] .home-page .hero-main::after {
+    content: none;
+}

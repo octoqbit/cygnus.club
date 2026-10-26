@@ -57,6 +57,7 @@ for (const mobile of [false, true]) {
 
 test('skip, Escape, resize, and repeated activation restore usable content', async ({ page }) => {
     await page.goto('/index.html');
+    await expect(page.getByRole('dialog', { name: 'Welcome to CYGNUS' })).toHaveCount(0);
     const trigger = page.getByRole('button', { name: triggerName });
     await trigger.focus();
     await page.keyboard.press('Enter');

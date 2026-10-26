@@ -1,6 +1,7 @@
 import { hasSessionHint, loginHref } from './lib/session-hint.js';
+import './entry-animation.js';
 
-// Navigation stays immediate: no timed boot screen or hidden page content.
+// Internal navigation stays immediate after the optional homepage entrance.
 // Route guest project clicks before downloading the protected detail page.
 document.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
