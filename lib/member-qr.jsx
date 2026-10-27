@@ -13,7 +13,7 @@ export function MemberQR({profile}) {
   const [result,setResult] = useState(null);
   useEffect(() => {
     let active = true;
-    if (text) QRCode.toDataURL(text,{errorCorrectionLevel:'M',margin:4,width:568,color:{dark:'#101317',light:'#ffffff'}})
+    if (text) QRCode.toDataURL(text,{errorCorrectionLevel:'H',margin:4,width:490,color:{dark:'#000000',light:'#ffffff'}})
       .then(url => renderMemberCard(url, cardProfile))
       .then(url => { if(active) setResult({key,url}); })
       .catch(() => { if(active) setResult({key,error:true}); });
@@ -27,7 +27,7 @@ export function MemberQR({profile}) {
       {current?.url?<>
         <img className="member-qr-image member-id-front" src={current.url}
           alt={`QR code with member details for ${profile.name}. ${memberCardRole(profile.role)}. Member ID: ${profile.member_id}. Contact: ${formatMobile(profile.mobile_number)}.`}
-          width="1000" height="1560"/>
+          width="760" height="1080"/>
         <a className="secondary wide" href={current.url} download={`${profile.member_id}-card.png`}><Download size={15}/> Download member card</a>
       </>:<p role={current?.error?'alert':'status'}>{current?.error?'Could not create the member card. Refresh this page to try again.':'Creating your member card…'}</p>}
       <p className="small-note">Show this card at club events. Core members and administrators can scan the QR to verify your current membership.</p>

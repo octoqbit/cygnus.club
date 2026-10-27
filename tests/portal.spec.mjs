@@ -65,14 +65,38 @@ test('approved members can open the merchandise coming-soon message', async ({pa
   await page.goto('/account');
   const merchandise = page.getByRole('region', {name:'CYGNUS merchandise'});
   await expect(merchandise).toBeVisible();
+  await expect(merchandise.getByRole('heading', {name:'ID card', exact:true})).toBeHidden();
+  await expect(merchandise.getByRole('button', {name:'Get merchandise'})).toHaveAttribute('aria-expanded', 'false');
+  const profileBox = await page.locator('.member-profile').boundingBox();
+  const merchandiseBox = await merchandise.boundingBox();
+  expect(merchandiseBox.x).toBeCloseTo(profileBox.x, 0);
+  expect(merchandiseBox.width).toBeCloseTo(profileBox.width, 0);
+  expect(merchandiseBox.y - (profileBox.y + profileBox.height)).toBeCloseTo(24, 0);
   await expect(merchandise.getByRole('status')).toHaveCount(0);
   await merchandise.getByRole('button', {name:'Get merchandise'}).click();
+  await expect(merchandise.getByRole('button', {name:'Get merchandise'})).toHaveAttribute('aria-expanded', 'true');
+  await expect(merchandise.getByRole('heading', {name:'ID card', exact:true})).toBeVisible();
+  await expect(merchandise.getByText('Coming soon', {exact:true})).toBeVisible();
+  await expect(merchandise.getByText('Awaiting', {exact:true})).toBeVisible();
   await expect(merchandise.getByRole('status')).toContainText('CYGNUS merchandise is coming soon.');
   await merchandise.screenshot({path:info.outputPath('merchandise-desktop.png')});
   await page.setViewportSize({width:375,height:812});
   await merchandise.scrollIntoViewIfNeeded();
+  const mobileQR = await page.locator('.member-qr').boundingBox();
+  const mobileMerchandise = await merchandise.boundingBox();
+  const mobileRegistrations = await page.locator('.member-registrations').boundingBox();
+  expect(mobileMerchandise.y).toBeGreaterThan(mobileQR.y + mobileQR.height);
+  expect(mobileRegistrations.y).toBeGreaterThan(mobileMerchandise.y + mobileMerchandise.height);
+  await expect(page.getByRole('region', {name:'CYGNUS merchandise'})).toHaveCount(1);
   expect(await merchandise.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await merchandise.screenshot({path:info.outputPath('merchandise-mobile.png')});
+  const toggle = merchandise.getByRole('button', {name:'Get merchandise'});
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(merchandise.getByRole('heading', {name:'ID card', exact:true})).toBeHidden();
+  await toggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(merchandise.getByText('Awaiting', {exact:true})).toBeVisible();
   expect(state.calls.filter(call => call.method === 'POST')).toEqual([]);
 });
 
@@ -707,15 +731,19 @@ test('team department filters and saved display order control the public lineup'
 async function scanMemberQR(page) {
   const image=page.getByRole('img',{name:/QR code with member details/});
   await expect(image).toBeVisible();
-  const pixels=await image.evaluate(async img=>{
+  await image.evaluate(img => img.decode());
+  // Scan the actual rendered pixels, including browser resizing at phone widths.
+  const screenshot = await image.screenshot();
+  const pixels = await page.evaluate(async base64 => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${base64}`;
     await img.decode();
-    // Decode the complete card at a realistic display size without transferring
-    // millions of full-resolution pixels through the browser test protocol.
-    const scale=Math.min(1,700/img.naturalHeight);
-    const canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
-    const context=canvas.getContext('2d');context.drawImage(img,0,0,canvas.width,canvas.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    const context = canvas.getContext('2d');
+    context.drawImage(img, 0, 0);
     return {data:Array.from(context.getImageData(0,0,canvas.width,canvas.height).data),width:canvas.width,height:canvas.height};
-  });
+  }, screenshot.toString('base64'));
   return jsQR(new Uint8ClampedArray(pixels.data),pixels.width,pixels.height)?.data;
 }
 
@@ -792,8 +820,28 @@ for (const [role, label] of [['member', 'CLUB MEMBER'], ['core_member', 'CORE ME
     await expect(card).toHaveAttribute('alt', new RegExp(label));
     expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
     await card.screenshot({path:info.outputPath(`${role}-card.png`)});
+    for (const width of [390, 320]) {
+      await page.setViewportSize({width, height:844});
+      expect(await scanMemberQR(page)).toBe('CYGNUS-MEMBER|CYG-CS-001|11111111-1111-4111-8111-111111111111');
+    }
+    await card.screenshot({path:info.outputPath(`${role}-card-mobile.png`)});
   });
 }
+
+test('logo QR remains scannable for different member tokens and long details', async ({page}, info) => {
+  const state = await mock(page, {role:'member', signedIn:true});
+  await page.setViewportSize({width:320, height:844});
+  for (const [index, [memberId, token, name]] of [
+    ['CYG-ECE-128', '9cb772a1-8c33-4d60-a591-ec057651fe9f', 'Ananya Krishnamurthy'],
+    ['CYG-OTHER-10000', '5084ac6f-a9e6-49be-861d-af3279e6a518', 'Alexandra Catherine Montgomery'],
+    ['CYG-ME-999', 'f44a2bb8-3d12-46e7-890a-e53852dbfc6e', 'Jamie Member'],
+  ].entries()) {
+    Object.assign(state.profile, {member_id:memberId, qr_token:token, name});
+    await page.goto('/account');
+    expect(await scanMemberQR(page)).toBe(`CYGNUS-MEMBER|${memberId}|${token}`);
+    await page.locator('.member-id-front').screenshot({path:info.outputPath(`logo-qr-${index}.png`)});
+  }
+});
 
 for (const [path, role, heading] of [['/account', 'member', 'Hello, Jamie.'], ['/admin', 'admin', 'Your club, at a glance.']]) {
   test(`${role} portal remembers dark mode and keeps controls usable`, async ({page}, info) => {
@@ -801,11 +849,23 @@ for (const [path, role, heading] of [['/account', 'member', 'Hello, Jamie.'], ['
     await page.goto(path);
     await expect(page.getByRole('heading', {name:heading})).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-portal-theme', 'light');
+    if (role === 'member') {
+      await expect(page.locator('body')).toHaveClass(/member-portal/);
+      await expect(page.locator('body')).toHaveCSS('background-image', /radial-gradient/);
+      await expect(page.locator('.member-gradient-canvas')).toBeVisible();
+      await expect(page.locator('.member-identity strong')).toHaveText('CYG-CS-001');
+      expect(await page.locator('.member-identity strong').evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22);
+    } else {
+      await expect(page.locator('body')).not.toHaveClass(/member-portal/);
+      await expect(page.locator('.member-portal-background')).toHaveCount(0);
+      await expect(page.locator('body')).toHaveCSS('background-image', 'none');
+    }
     await page.getByRole('button', {name:'Dark mode', exact:true}).click();
-    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(16, 21, 19)');
+    await expect(page.locator('body')).toHaveCSS('background-color', role === 'member' ? 'rgb(9, 10, 12)' : 'rgb(16, 21, 19)');
     await page.reload();
     await expect(page.getByRole('button', {name:'Light mode', exact:true})).toBeVisible();
     if (role === 'member') {
+      await expect(page.getByLabel('Name', {exact:true})).toHaveCSS('background-color', 'rgb(28, 31, 37)');
       await page.getByRole('button', {name:'Get merchandise'}).click();
       await expect(page.getByRole('status')).toContainText('CYGNUS merchandise is coming soon.');
       expect(await scanMemberQR(page)).toContain('CYGNUS-MEMBER|CYG-CS-001|');
@@ -824,5 +884,19 @@ for (const [path, role, heading] of [['/account', 'member', 'Hello, Jamie.'], ['
     await page.getByRole('button', {name:'Light mode', exact:true}).click();
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-portal-theme', 'light');
+    if (role === 'member') {
+      await page.screenshot({path:info.outputPath('member-light-mobile.png'), fullPage:true});
+      await page.goto('/account?mode=reset');
+      await expect(page.getByRole('heading', {name:'Choose a new password.'})).toBeVisible();
+      await expect(page.locator('body')).not.toHaveClass(/member-portal/);
+      await expect(page.locator('.member-portal-background')).toHaveCount(0);
+      await expect(page.locator('body')).toHaveCSS('background-image', 'none');
+      await page.goto('/account');
+      await page.getByRole('button', {name:'Sign out', exact:true}).click();
+      await expect(page.getByRole('heading', {name:'Good to see you.'})).toBeVisible();
+      await expect(page.locator('body')).not.toHaveClass(/member-portal/);
+      await expect(page.locator('.member-portal-background')).toHaveCount(0);
+      await expect(page.locator('body')).toHaveCSS('background-image', 'none');
+    }
   });
 }
